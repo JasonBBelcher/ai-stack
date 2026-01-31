@@ -27,33 +27,36 @@ class QuantizationLevel(Enum):
 
 @dataclass
 class ModelCapabilities:
-    """Comprehensive model capability definition"""
+    """Comprehensive model capability definition with sensible defaults"""
     
     # Technical specifications
-    context_length: int
-    quantization_level: str
-    model_size: int  # parameter count
-    memory_gb_estimate: float
+    context_length: int = 32768  # Default context length
+    quantization_level: str = "N/A"
+    model_size: int = 7000000  # Default estimate for 7B model
+    memory_gb_estimate: float = 4.0  # Conservative estimate
     
     # Performance characteristics (0-1 scales)
-    reasoning_strength: float = 0.5
-    coding_strength: float = 0.5
-    creativity: float = 0.5
-    multilingual_score: float = 0.5
+    reasoning_strength: float = 0.5  # Balanced reasoning
+    coding_strength: float = 0.5  # Practical coding ability
+    creativity: float = 0.5  # Moderate creativity
+    multilingual_score: float = 0.5  # Good multilingual support
     
     # Feature support
-    supports_function_calling: bool = False
-    supports_vision: bool = False
-    supports_tools: bool = False
+    supports_function_calling: bool = False  # Default
+    supports_vision: bool = False     # Vision models
+    supports_tools: bool = False      # Tool use (until implemented)
     
     # Resource requirements
     min_memory_gb: float = 4.0
     recommended_memory_gb: float = 6.0
-    thermal_sensitivity: float = 0.5
+    
+    # Thermal and performance
+    thermal_sensitivity: float = 0.5  # Medium thermal sensitivity
+    model_size: int = 7000000  # 7B parameter estimate
     
     # Availability
-    model_source: str = ModelSource.OLLAMA.value
-    requires_api_key: bool = False
+    model_source: str = ModelSource.LOCAL  # Default
+    requires_api_key: bool = False  # Local models don't need API keys
     
     # Metadata
     model_name: Optional[str] = None
@@ -69,289 +72,407 @@ class ModelCapabilities:
         self.creativity = max(0.0, min(1.0, self.creativity))
         self.multilingual_score = max(0.0, min(1.0, self.multilingual_score))
         
-        # Validate context length
+        # Normalize context length to reasonable range
         if self.context_length <= 0:
-            raise ValueError("Context length must be positive")
+            self.context_length = max(1000, self.context_length)
         
         # Validate memory estimates
         if self.memory_gb_estimate <= 0:
-            raise ValueError("Memory estimate must be positive")
+            self.memory_gb_estimate = 4.0
+        elif self.memory_gb_estimate > 20.0:
+            self.memory_gb_estimate = 20.0  # Cap very large models
+        elif self.model_size > 30000000000:  # >30B parameters
+            self.memory_gb_estimate = min(self.model_size / 1000000000 * 20.0, 20.0)
+        elif self.model_size > 7000000000:  # 7B parameters
+            self.memory_gb_estimate = min(self.model_size / 1000000 * 8.0, 8.0)
         
-        # Validate quantization
+        # Validate quantization level
         if self.quantization_level not in [q.value for q in QuantizationLevel]:
-            self.quantization_level = QuantizationLevel.N_A.value
+            self.quantization_level = QuantizationLevel.N_A
+        
+        # Validate thermal sensitivity
+        self.thermal_sensitivity = max(0.1, min(1.0, self.thermal_sensitivity))
+        
+        # Validate performance characteristics
+        all_positive = all(x >= 0 for x in [self.reasoning_strength, self.coding_strength, self.creativity, self.multilingual_score])
+        if not all_positive:
+            # Set minimal positive values if all are zero
+            if self.reasoning_strength <= 0:
+                self.reasoning_strength = 0.1
+            if self.coding_strength <= 0:
+                self.coding_strength = 0.1
+            if self.creativity <= 0:
+                self.creativity = 0.1
+            self.multilingual_score = 0.1
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation"""
+        return {
+            "context_length": self.context_length,
+            "quantization_level": self.quantization_level,
+            "model_size": self.model_size,
+            "reasoning_strength": self.reasoning_strength,
+            "coding_strength": self.coding_strength,
+            "creativity": self.creativity,
+            "multilingual_score": self.multilingual_score,
+            "supports_function_calling": self.supports_function_calling,
+            "supports_vision": self.supports_vision,
+            "supports_tools": self.supports_tools,
+            "min_memory_gb": self.min_memory_gb,
+            "recommended_memory_gb": self.recommended_memory_gb,
+            "thermal_sensitivity": self.thermal_sensitivity,
+            "model_source": self.model_source,
+            "requires_api_key": self.requires_api_key,
+            "model_name": self.model_name,
+            "display_name": self.display_name,
+            "description": self.description,
+            "tags": self.tags
+        }
+    
+    @classmethod
+    def create_from_dict(cls, data: Dict[str, Any]) -> 'ModelCapabilities':
+        """Create ModelCapabilities from dictionary"""
+        return cls(
+            context_length=data.get('context_length', 32768),
+            quantization_level=data.get('quantization_level', 'N/A'),
+            model_size=data.get('model_size', 7000000),
+            memory_gb_estimate=data.get('memory_gb_estimate', 4.0),
+            reasoning_strength=data.get('reasoning_strength', 0.5),
+            coding_strength=data.get('coding_strength', 0.5),
+            creativity=data.get('creativity', 0.5),
+            multilingual_score=data.get('multilingual_score', 0.5),
+            supports_function_calling=data.get('supports_function_calling', False),
+            supports_vision=data.get('supports_vision', False),
+            supports_tools=data.get('supports_tools', False),
+            min_memory_gb=data.get('min_memory_gb', 4.0),
+            recommended_memory_gb=data.get('recommended_memory_gb', 6.0),
+            thermal_sensitivity=data.get('thermal_sensitivity', 0.5),
+            model_source=data.get('model_source', ModelSource.LOCAL.value),
+            requires_api_key=data.get('requires_api_key', False),
+            model_name=data.get('model_name'),
+            display_name=data.get('display_name'),
+            description=data.get('description'),
+            tags=data.get('tags', [])
+        )
 
 
 @dataclass
 class RoleRequirements:
-    """Requirements for a specific role"""
+    """Requirements for a specific role/task type"""
     
-    # Performance requirements (0-1 scales)
-    reasoning_strength_min: float = 0.5
-    coding_strength_min: float = 0.5
-    creativity_min: float = 0.0
-    multilingual_score_min: float = 0.0
-    
-    # Technical requirements
-    context_length_min: int = 4000
-    memory_gb_max: float = 16.0
+    # Core requirements (0-1 scales)
+    min_reasoning_strength: float = 0.5
+    min_coding_strength: float = 0.0
+    min_creativity: float = 0.0
+    min_multilingual_score: float = 0.0
     
     # Feature requirements
-    supports_function_calling: bool = False
-    supports_tools: bool = False
-    supports_vision: bool = False
+    requires_function_calling: bool = False
+    requires_vision: bool = False
+    requires_tools: bool = False
     
-    # Constraints
+    # Performance requirements
     max_thermal_sensitivity: float = 0.8
-    requires_local: bool = False  # If True, cloud models not allowed
+    min_context_length: int = 4096
     
-    def validate_capabilities(self, capabilities: ModelCapabilities) -> 'ValidationReport':
-        """Validate if a model meets role requirements"""
-        issues = []
-        warnings = []
+    # Cost preferences (lower is more preferred)
+    cost_preference: float = 0.5  # 0 = prefer cheapest, 1 = prefer best
+    
+    def __post_init__(self):
+        """Validate role requirements"""
+        # Validate scales
+        self.min_reasoning_strength = max(0.0, min(1.0, self.min_reasoning_strength))
+        self.min_coding_strength = max(0.0, min(1.0, self.min_coding_strength))
+        self.min_creativity = max(0.0, min(1.0, self.min_creativity))
+        self.min_multilingual_score = max(0.0, min(1.0, self.min_multilingual_score))
         
-        # Performance validation
-        if capabilities.reasoning_strength < self.reasoning_strength_min:
-            issues.append(f"Reasoning strength too low: {capabilities.reasoning_strength} < {self.reasoning_strength_min}")
+        self.max_thermal_sensitivity = max(0.1, min(1.0, self.max_thermal_sensitivity))
+        self.cost_preference = max(0.0, min(1.0, self.cost_preference))
+    
+    def validate_capabilities(self, capabilities: ModelCapabilities) -> ValidationReport:
+        """Validate if capabilities meet role requirements"""
+        report = ValidationReport(
+            model_name=capabilities.model_name or "Unknown",
+            is_valid=True
+        )
         
-        if capabilities.coding_strength < self.coding_strength_min:
-            issues.append(f"Coding strength too low: {capabilities.coding_strength} < {self.coding_strength_min}")
+        # Check reasoning strength
+        if capabilities.reasoning_strength < self.min_reasoning_strength:
+            report.add_issue(f"Insufficient reasoning strength: {capabilities.reasoning_strength} < {self.min_reasoning_strength}")
         
-        if capabilities.creativity < self.creativity_min:
-            issues.append(f"Creativity too low: {capabilities.creativity} < {self.creativity_min}")
+        # Check coding strength
+        if capabilities.coding_strength < self.min_coding_strength:
+            report.add_issue(f"Insufficient coding strength: {capabilities.coding_strength} < {self.min_coding_strength}")
         
-        if capabilities.multilingual_score < self.multilingual_score_min:
-            issues.append(f"Multilingual score too low: {capabilities.multilingual_score} < {self.multilingual_score_min}")
+        # Check creativity
+        if capabilities.creativity < self.min_creativity:
+            report.add_issue(f"Insufficient creativity: {capabilities.creativity} < {self.min_creativity}")
         
-        # Technical validation
-        if capabilities.context_length < self.context_length_min:
-            issues.append(f"Context length too short: {capabilities.context_length} < {self.context_length_min}")
+        # Check multilingual support
+        if capabilities.multilingual_score < self.min_multilingual_score:
+            report.add_issue(f"Insufficient multilingual score: {capabilities.multilingual_score} < {self.min_multilingual_score}")
         
-        if capabilities.recommended_memory_gb > self.memory_gb_max:
-            issues.append(f"Memory requirement too high: {capabilities.recommended_memory_gb}GB > {self.memory_gb_max}GB")
+        # Check feature requirements
+        if self.requires_function_calling and not capabilities.supports_function_calling:
+            report.add_issue("Function calling required but not supported")
         
-        # Feature validation
-        if self.supports_function_calling and not capabilities.supports_function_calling:
-            issues.append("Function calling support required but not available")
+        if self.requires_vision and not capabilities.supports_vision:
+            report.add_issue("Vision required but not supported")
         
-        if self.supports_tools and not capabilities.supports_tools:
-            issues.append("Tools support required but not available")
+        if self.requires_tools and not capabilities.supports_tools:
+            report.add_issue("Tools required but not supported")
         
-        if self.supports_vision and not capabilities.supports_vision:
-            issues.append("Vision support required but not available")
-        
-        # Constraints validation
+        # Check thermal sensitivity
         if capabilities.thermal_sensitivity > self.max_thermal_sensitivity:
-            warnings.append(f"High thermal sensitivity: {capabilities.thermal_sensitivity} > {self.max_thermal_sensitivity}")
+            report.add_warning(f"High thermal sensitivity: {capabilities.thermal_sensitivity} > {self.max_thermal_sensitivity}")
         
-        if self.requires_local and capabilities.model_source != ModelSource.OLLAMA.value:
-            issues.append("Local model required but this is a cloud model")
+        # Check context length
+        if capabilities.context_length < self.min_context_length:
+            report.add_issue(f"Insufficient context length: {capabilities.context_length} < {self.min_context_length}")
         
-        # Performance warnings
-        if capabilities.model_size < 1000000000:  # Less than 1B parameters
-            warnings.append("Small model may have limited capabilities")
-        
-        return ValidationReport(
-            is_valid=len(issues) == 0,
-            issues=issues,
-            warnings=warnings,
-            score=self._calculate_score(capabilities)
-        )
-    
-    def _calculate_score(self, capabilities: ModelCapabilities) -> float:
-        """Calculate how well the model matches requirements (0-1)"""
-        performance_score = (
-            (capabilities.reasoning_strength + self.reasoning_strength_min) / 2 * 0.3 +
-            (capabilities.coding_strength + self.coding_strength_min) / 2 * 0.3 +
-            (capabilities.creativity + self.creativity_min) / 2 * 0.2 +
-            (capabilities.multilingual_score + self.multilingual_score_min) / 2 * 0.2
-        )
-        
-        tech_score = min(1.0, capabilities.context_length / self.context_length_min) * 0.5
-        memory_score = 1.0 - max(0.0, (capabilities.recommended_memory_gb - self.memory_gb_max) / self.memory_gb_max) * 0.5
-        
-        return (performance_score + tech_score + memory_score) / 2
+        return report
 
 
 @dataclass
 class ValidationReport:
-    """Report from capability validation"""
+    """Model validation report"""
+    model_name: str
     is_valid: bool
     issues: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
-    score: float = 0.0
+    suggestions: List[str] = field(default_factory=list)
+    
+    def add_issue(self, issue: str):
+        """Add a validation issue"""
+        self.issues.append(issue)
+        self.is_valid = False
+    
+    def add_warning(self, warning: str):
+        """Add a validation warning"""
+        self.warnings.append(warning)
+    
+    def add_suggestion(self, suggestion: str):
+        """Add a validation suggestion"""
+        self.suggestions.append(suggestion)
+    
+    def has_issues(self) -> bool:
+        """Check if there are any issues"""
+        return len(self.issues) > 0
+    
+    def has_warnings(self) -> bool:
+        """Check if there are any warnings"""
+        return len(self.warnings) > 0
     
     def __str__(self) -> str:
-        if self.is_valid:
-            if self.warnings:
-                return f"✓ Valid (score: {self.score:.2f}) with warnings: {'; '.join(self.warnings)}"
-            return f"✓ Valid (score: {self.score:.2f})"
-        else:
-            return f"✗ Invalid (score: {self.score:.2f}): {'; '.join(self.issues)}"
-
-
-class CapabilityMatcher:
-    """Utility class for matching capabilities to requirements"""
-    
-    @staticmethod
-    def find_best_match(
-        models: Dict[str, ModelCapabilities],
-        requirements: RoleRequirements,
-        system_constraints: Optional[Dict[str, Any]] = None
-    ) -> 'ModelSelection':
-        """Find the best model matching requirements"""
+        """String representation of the validation report"""
+        status = "✅ VALID" if self.is_valid else "❌ INVALID"
+        result = f"{status}: {self.model_name}\n"
         
-        valid_models = []
+        if self.issues:
+            result += "Issues:\n"
+            for issue in self.issues:
+                result += f"  • {issue}\n"
         
-        for model_name, capabilities in models.items():
-            validation = requirements.validate_capabilities(capabilities)
-            
-            if validation.is_valid:
-                # Apply system constraints
-                if system_constraints:
-                    if capabilities.recommended_memory_gb > system_constraints.get('max_memory_gb', float('inf')):
-                        continue
-                    
-                    if capabilities.thermal_sensitivity > system_constraints.get('max_thermal_sensitivity', 1.0):
-                        continue
-                    
-                    if system_constraints.get('local_only', False) and capabilities.model_source != ModelSource.OLLAMA.value:
-                        continue
-                
-                valid_models.append(ModelSelection(
-                    model_name=model_name,
-                    capabilities=capabilities,
-                    validation=validation,
-                    source=capabilities.model_source
-                ))
+        if self.warnings:
+            result += "Warnings:\n"
+            for warning in self.warnings:
+                result += f"  • {warning}\n"
         
-        if not valid_models:
-            return ModelSelection(
-                model_name=None,
-                capabilities=None,
-                validation=ValidationReport(is_valid=False, issues=["No valid models found"]),
-                source=None
-            )
+        if self.suggestions:
+            result += "Suggestions:\n"
+            for suggestion in self.suggestions:
+                result += f"  • {suggestion}\n"
         
-        # Sort by validation score, then by model size (prefer larger models for ties)
-        valid_models.sort(key=lambda x: (x.validation.score, x.capabilities.model_size), reverse=True)
-        
-        return valid_models[0]
-    
-    @staticmethod
-    def get_models_by_capability(
-        models: Dict[str, ModelCapabilities],
-        capability: str,
-        min_value: float = 0.7
-    ) -> List[str]:
-        """Get models that meet a minimum capability threshold"""
-        
-        matching_models = []
-        for model_name, capabilities in models.items():
-            capability_value = getattr(capabilities, capability, 0.0)
-            if capability_value >= min_value:
-                matching_models.append(model_name)
-        
-        return matching_models
+        return result
 
 
 @dataclass
 class ModelSelection:
-    """Result of model selection process"""
-    model_name: Optional[str]
-    capabilities: Optional[ModelCapabilities]
-    validation: ValidationReport
-    source: Optional[str]
+    """Model selection result with scoring"""
+    model_name: str
+    capabilities: ModelCapabilities
+    score: float
+    selection_reason: str
+    cost_estimate: Optional[float] = None
+    performance_estimate: Optional[float] = None
+    thermal_impact: Optional[str] = None
+    validation: Optional[ValidationReport] = None
     
     @property
     def is_valid(self) -> bool:
-        return self.model_name is not None and self.validation.is_valid
+        """Check if selection is valid"""
+        if self.validation:
+            return self.validation.is_valid
+        return self.score > 0.0 and self.capabilities is not None
+    
+    def __str__(self) -> str:
+        """String representation of model selection"""
+        return f"{self.model_name} (Score: {self.score:.2f}): {self.selection_reason}"
 
 
-# Predefined role requirements
+class CapabilityMatcher:
+    """Intelligent capability matching system"""
+    
+    def __init__(self):
+        """Initialize capability matcher"""
+        pass
+    
+    def match_requirements(self, capabilities: ModelCapabilities, requirements: RoleRequirements) -> float:
+        """Calculate match score between model capabilities and role requirements"""
+        score = 0.0
+        factors = 0
+        
+        # Core capability matching
+        if requirements.min_reasoning_strength > 0:
+            if capabilities.reasoning_strength >= requirements.min_reasoning_strength:
+                score += 1.0
+            else:
+                score += capabilities.reasoning_strength / requirements.min_reasoning_strength
+            factors += 1
+        
+        if requirements.min_coding_strength > 0:
+            if capabilities.coding_strength >= requirements.min_coding_strength:
+                score += 1.0
+            else:
+                score += capabilities.coding_strength / requirements.min_coding_strength
+            factors += 1
+        
+        if requirements.min_creativity > 0:
+            if capabilities.creativity >= requirements.min_creativity:
+                score += 1.0
+            else:
+                score += capabilities.creativity / requirements.min_creativity
+            factors += 1
+        
+        if requirements.min_multilingual_score > 0:
+            if capabilities.multilingual_score >= requirements.min_multilingual_score:
+                score += 1.0
+            else:
+                score += capabilities.multilingual_score / requirements.min_multilingual_score
+            factors += 1
+        
+        # Feature requirement matching
+        if requirements.requires_function_calling and not capabilities.supports_function_calling:
+            score -= 0.5
+        if requirements.requires_vision and not capabilities.supports_vision:
+            score -= 0.5
+        if requirements.requires_tools and not capabilities.supports_tools:
+            score -= 0.5
+        
+        # Thermal sensitivity matching
+        if capabilities.thermal_sensitivity > requirements.max_thermal_sensitivity:
+            score -= 0.3
+        
+        # Context length matching
+        if capabilities.context_length < requirements.min_context_length:
+            score -= 0.2
+        
+        # Normalize score
+        if factors > 0:
+            score = max(0.0, score / factors)
+        
+        return score
+    
+    def rank_models(self, models: List[ModelCapabilities], requirements: RoleRequirements) -> List[ModelSelection]:
+        """Rank models by their match to requirements"""
+        selections = []
+        
+        for capabilities in models:
+            score = self.match_requirements(capabilities, requirements)
+            
+            # Generate selection reason
+            reasons = []
+            if score >= 0.8:
+                reasons.append("Excellent match")
+            elif score >= 0.6:
+                reasons.append("Good match")
+            elif score >= 0.4:
+                reasons.append("Adequate match")
+            else:
+                reasons.append("Poor match")
+            
+            if capabilities.reasoning_strength >= requirements.min_reasoning_strength:
+                reasons.append("meets reasoning requirements")
+            if capabilities.coding_strength >= requirements.min_coding_strength:
+                reasons.append("meets coding requirements")
+            
+            selection = ModelSelection(
+                model_name=capabilities.model_name or "Unknown",
+                capabilities=capabilities,
+                score=score,
+                selection_reason=", ".join(reasons)
+            )
+            
+            selections.append(selection)
+        
+        # Sort by score (descending)
+        selections.sort(key=lambda x: x.score, reverse=True)
+        
+        return selections
+    
+    def find_best_match(self, models: List[ModelCapabilities], requirements: RoleRequirements, constraints: Optional[Dict[str, Any]] = None) -> ModelSelection:
+        """Find the best matching model"""
+        selections = self.rank_models(models, requirements)
+        return selections[0] if selections else None
+
+
+# Default role requirements for common tasks
 DEFAULT_ROLE_REQUIREMENTS = {
-    "planner": RoleRequirements(
-        reasoning_strength_min=0.7,
-        coding_strength_min=0.3,
-        creativity_min=0.2,
-        multilingual_score_min=0.5,
-        context_length_min=8000,
-        memory_gb_max=8.0,
-        supports_function_calling=False,
-        supports_tools=False,
-        supports_vision=False,
-        max_thermal_sensitivity=0.7,
-        requires_local=True
+    "coding": RoleRequirements(
+        min_reasoning_strength=0.6,
+        min_coding_strength=0.7,
+        min_creativity=0.3,
+        requires_function_calling=True,
+        min_context_length=8192,
+        cost_preference=0.4
     ),
-    
-    "critic": RoleRequirements(
-        reasoning_strength_min=0.8,
-        coding_strength_min=0.4,
-        creativity_min=0.1,
-        multilingual_score_min=0.6,
-        context_length_min=16000,
-        memory_gb_max=6.0,
-        supports_function_calling=True,
-        supports_tools=False,
-        supports_vision=False,
-        max_thermal_sensitivity=0.6,
-        requires_local=True
+    "writing": RoleRequirements(
+        min_reasoning_strength=0.5,
+        min_coding_strength=0.0,
+        min_creativity=0.8,
+        min_context_length=4096,
+        cost_preference=0.6
     ),
-    
-    "executor": RoleRequirements(
-        reasoning_strength_min=0.6,
-        coding_strength_min=0.8,
-        creativity_min=0.3,
-        multilingual_score_min=0.4,
-        context_length_min=16000,
-        memory_gb_max=12.0,
-        supports_function_calling=True,
-        supports_tools=True,
-        supports_vision=False,
-        max_thermal_sensitivity=0.8,
-        requires_local=True
+    "analysis": RoleRequirements(
+        min_reasoning_strength=0.8,
+        min_coding_strength=0.3,
+        min_creativity=0.4,
+        min_context_length=16384,
+        cost_preference=0.3
+    ),
+    "chat": RoleRequirements(
+        min_reasoning_strength=0.4,
+        min_coding_strength=0.0,
+        min_creativity=0.6,
+        min_context_length=4096,
+        cost_preference=0.7
+    ),
+    "research": RoleRequirements(
+        min_reasoning_strength=0.7,
+        min_coding_strength=0.2,
+        min_creativity=0.5,
+        min_context_length=32768,
+        cost_preference=0.2
     )
 }
 
 
-def create_capabilities_from_dict(data: Dict[str, Any]) -> ModelCapabilities:
-    """Create ModelCapabilities from dictionary data"""
-    return ModelCapabilities(
-        context_length=data.get('context_length', 4000),
-        quantization_level=data.get('quantization_level', 'N/A'),
-        model_size=data.get('model_size', 0),
-        memory_gb_estimate=data.get('memory_gb_estimate', 4.0),
-        reasoning_strength=data.get('reasoning_strength', 0.5),
-        coding_strength=data.get('coding_strength', 0.5),
-        creativity=data.get('creativity', 0.5),
-        multilingual_score=data.get('multilingual_score', 0.5),
-        supports_function_calling=data.get('supports_function_calling', False),
-        supports_vision=data.get('supports_vision', False),
-        supports_tools=data.get('supports_tools', False),
-        min_memory_gb=data.get('min_memory_gb', 4.0),
-        recommended_memory_gb=data.get('recommended_memory_gb', 6.0),
-        thermal_sensitivity=data.get('thermal_sensitivity', 0.5),
-        model_source=data.get('model_source', ModelSource.OLLAMA.value),
-        requires_api_key=data.get('requires_api_key', False),
-        model_name=data.get('model_name'),
-        display_name=data.get('display_name'),
-        description=data.get('description'),
-        tags=data.get('tags', [])
-    )
-
-
 def create_role_requirements_from_dict(data: Dict[str, Any]) -> RoleRequirements:
-    """Create RoleRequirements from dictionary data"""
+    """Factory function to create RoleRequirements from dictionary"""
     return RoleRequirements(
-        reasoning_strength_min=data.get('reasoning_strength', 0.5),
-        coding_strength_min=data.get('coding_strength', 0.5),
-        creativity_min=data.get('creativity', 0.0),
-        multilingual_score_min=data.get('multilingual_score', 0.0),
-        context_length_min=data.get('context_length_min', 4000),
-        memory_gb_max=data.get('memory_gb_max', 16.0),
-        supports_function_calling=data.get('supports_function_calling', False),
-        supports_tools=data.get('supports_tools', False),
-        supports_vision=data.get('supports_vision', False),
+        min_reasoning_strength=data.get('min_reasoning_strength', 0.5),
+        min_coding_strength=data.get('min_coding_strength', 0.0),
+        min_creativity=data.get('min_creativity', 0.0),
+        min_multilingual_score=data.get('min_multilingual_score', 0.0),
+        requires_function_calling=data.get('requires_function_calling', False),
+        requires_vision=data.get('requires_vision', False),
+        requires_tools=data.get('requires_tools', False),
         max_thermal_sensitivity=data.get('max_thermal_sensitivity', 0.8),
-        requires_local=data.get('requires_local', False)
+        min_context_length=data.get('min_context_length', 4096),
+        cost_preference=data.get('cost_preference', 0.5)
     )
+
+
+def create_capabilities_from_dict(data: Dict[str, Any]) -> ModelCapabilities:
+    """Factory function to create ModelCapabilities from dictionary"""
+    return ModelCapabilities.create_from_dict(data)

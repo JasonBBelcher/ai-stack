@@ -149,15 +149,18 @@ class MemoryManager:
     def get_thermal_state(self) -> Dict[str, Any]:
         """Get thermal information"""
         try:
-            # Try to get detailed thermal info (requires sudo)
+            # Try to get thermal info without sudo first
             result = subprocess.run(
-                ["sudo", "powermetrics", "--samplers", "thermal", "-i", "1000", "-n", "1"],
+                ["powermetrics", "--samplers", "thermal", "-i", "1000", "-n", "1"],
                 capture_output=True,
                 text=True,
-                timeout=15
+                timeout=3
             )
             
-            thermal_info = {"status": "available"}
+            if result.returncode == 0:
+                thermal_info = {"status": "available", "source": "powermetrics"}
+            else:
+                raise Exception("powermetrics failed without sudo")
             
             if "Thermal Level: 0" in result.stdout:
                 thermal_info["level"] = "normal"
@@ -175,13 +178,14 @@ class MemoryManager:
             return thermal_info
             
         except Exception:
-            # Fallback to CPU-based estimation
+            # Fallback to CPU-based estimation (no sudo required)
             if psutil is None:
                 return {
                     "status": "estimated",
-                    "level": "normal",
+                    "level": "normal", 
                     "score": 0.2,
-                    "cpu_percent": 0
+                    "cpu_percent": 0,
+                    "source": "fallback"
                 }
             
             cpu_percent = psutil.cpu_percent(interval=1)

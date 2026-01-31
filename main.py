@@ -7,13 +7,14 @@ import argparse
 import json
 import sys
 import os
+import time
 
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 # Import with error handling
 try:
-    from src.enhanced_controller import EnhancedAIStackController
+    from src.enhanced_controller import SimplifiedAIStackController
 except ImportError as e:
     print(f"❌ Error importing enhanced controller: {e}")
     print("Ensure all dependencies are installed with:")
@@ -30,27 +31,29 @@ except ImportError as e:
 
 # Check if we have basic required components
 BASIC_COMPONENTS = {
-    "enhanced_controller": "enhanced_controller.py",
-    "capabilities": "capabilities.py", 
-    "model_registry": "model_registry.py",
-    "profile_manager": "profile_manager.py",
-    "enhanced_config": "enhanced_config.py"
+    "enhanced_controller": "src/enhanced_controller.py",
+    "capabilities": "src/capabilities.py", 
+    "model_registry": "src/model_registry.py",
+    "profile_manager": "src/profile_manager.py",
+    "enhanced_config": "src/enhanced_config.py",
 }
 
 def check_basic_components():
     """Check if basic components are available"""
     missing = []
+    present = []
     
     for component, description in BASIC_COMPONENTS.items():
-        file_path = os.path.join("src", component)
-        if not os.path.exists(file_path):
+        if not os.path.exists(description):
             missing.append(f"❌ {description} ({component})")
         else:
-            missing.append(f"✅ {description}")
+            present.append(f"✅ {description}")
     
     if missing:
         print("❌ Missing components:")
         for item in missing:
+            print(f"  {item}")
+        for item in present:
             print(f"  {item}")
         return False
     else:
@@ -187,8 +190,8 @@ def run_demo():
         return False
     
     try:
-        from src.enhanced_controller import EnhancedAIStackController
-        controller = EnhancedAIStackController()
+        from src.enhanced_controller import SimplifiedAIStackController
+        controller = SimplifiedAIStackController()
         
         print("🔧 Testing model discovery...")
         models = controller.get_available_models()
@@ -235,9 +238,10 @@ def handle_models_command(controller, args):
         
         elif args.models == "discover":
             print("=== Model Discovery ===")
-            controller.refresh_models()
-            summary = controller.get_system_status()["config"]["models"]
-            print(f"✓ Refreshed models - Total: {summary.get('total_models', 0)}")
+            refresh_result = controller.refresh_models()
+            print(f"✓ Refreshed models - Total: {len(refresh_result.get('models', []))}")
+            for model in refresh_result.get('models', []):
+                print(f"  • {model}")
         
         elif args.model_info:
             info = controller.get_model_for_role_info(args.model_info)
@@ -383,7 +387,7 @@ def main():
     
     # Initialize enhanced controller
     try:
-        controller = EnhancedAIStackController()
+        controller = SimplifiedAIStackController()
         print("✅ Enhanced AI Stack Controller initialized")
     except Exception as e:
         print(f"❌ Error initializing controller: {e}")
@@ -441,6 +445,13 @@ def interactive_mode(controller):
     print("Type 'help' for commands, 'exit' to quit")
     print("")
     
+    # Check if we're in an interactive terminal
+    import sys
+    if not sys.stdin.isatty():
+        print("⚠️ Not an interactive terminal. Use command-line arguments instead.")
+        print("Example: python3 main.py 'your request here'")
+        return
+    
     while True:
         try:
             user_input = input("ai-stack> ").strip()
@@ -473,6 +484,9 @@ def interactive_mode(controller):
             print("-" * 50)
         
         except KeyboardInterrupt:
+            print("\nGoodbye!")
+            break
+        except EOFError:
             print("\nGoodbye!")
             break
         except Exception as e:
@@ -679,10 +693,7 @@ def process_request(controller, args):
         result = controller.process_request(
             user_input=args.input,
             context=args.context,
-            additional_context=args.additional_context,
-            model_overrides=model_overrides,
-            temp_overrides=temp_overrides,
-            config_overrides=config_overrides
+            additional_context=args.additional_context
         )
         
         if result.success:

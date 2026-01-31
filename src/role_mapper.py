@@ -16,6 +16,13 @@ from src.capabilities import (
 )
 
 
+class ModelType:
+    """Model role types"""
+    PLANNER = "planner"
+    CRITIC = "critic"
+    EXECUTOR = "executor"
+
+
 @dataclass
 class SystemConstraints:
     """Current system constraints and resources"""
@@ -82,7 +89,7 @@ class RoleMapper:
     ) -> ModelSelection:
         """Select the best model for a specific role"""
         
-        role_str = role.value
+        role_str = role if isinstance(role, str) else role.value if hasattr(role, 'value') else str(role)
         system_constraints = system_constraints or SystemConstraints()
         selection_criteria = selection_criteria or self.default_criteria
         
@@ -123,7 +130,7 @@ class RoleMapper:
         
         # Find best match using capability matcher
         best_selection = self.capability_matcher.find_best_match(
-            constrained_models,
+            list(constrained_models.values()),
             role_requirements,
             self._constraints_to_dict(system_constraints)
         )

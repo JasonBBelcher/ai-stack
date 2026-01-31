@@ -208,6 +208,6 @@
     "max_memory_usage_gb": 14.0,
     "thermal_threshold": 0.8,
     "auto_discover_models": true,
-    "validation_timeout_seconds": 30
+    "validation_timeout_seconds": 60
   }
 }

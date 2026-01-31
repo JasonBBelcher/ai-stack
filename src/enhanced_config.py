@@ -41,7 +41,7 @@ class SystemConfig:
     max_memory_usage_gb: float = 14.0
     thermal_threshold: float = 0.8
     auto_discover_models: bool = True
-    validation_timeout_seconds: int = 30
+    validation_timeout_seconds: int = 60
     default_temperature: Dict[str, float] = None
     
     def __post_init__(self):
@@ -382,7 +382,7 @@ class AIStackConfig:
                     'name': model_name,
                     'source': model_info.source,
                     'validated': model_info.validated,
-                    'capabilities': model_info.capabilities,
+                    'capabilities': model_info.capabilities.to_dict(),
                     'memory_gb': model_info.capabilities.recommended_memory_gb
                 }
         

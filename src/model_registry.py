@@ -137,7 +137,7 @@ class ModelRegistry:
     
     def _validate_models(self) -> None:
         """Validate that models are accessible and working"""
-        validation_timeout = self.config_data.get("system_settings", {}).get("validation_timeout_seconds", 30)
+        validation_timeout = self.config_data.get("system_settings", {}).get("validation_timeout_seconds", 60)
         
         for model_name, model_info in self.models.items():
             if model_info.source == "ollama":
@@ -158,12 +158,12 @@ class ModelRegistry:
     def _validate_ollama_model(self, model_name: str, timeout: int) -> bool:
         """Validate that an Ollama model is accessible"""
         try:
-            # Try to run a simple test prompt
+            # Fast validation: just check if model info is accessible via ollama show
             result = subprocess.run(
-                ["ollama", "run", model_name, "test", "--verbose"],
+                ["ollama", "show", model_name],
                 capture_output=True,
                 text=True,
-                timeout=timeout
+                timeout=5  # Short timeout for show command
             )
             return result.returncode == 0
         except subprocess.TimeoutExpired:
