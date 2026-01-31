@@ -1,0 +1,213 @@
+{
+  "role_mappings": {
+    "planner": {
+      "preferred": ["llama3.1:8b", "mistral:latest"],
+      "cloud_fallback": "openai:gpt-4o-mini",
+      "requirements": {
+        "reasoning_strength": 0.7,
+        "context_length_min": 8000,
+        "memory_gb_max": 8,
+        "supports_tools": false
+      }
+    },
+    "critic": {
+      "preferred": ["llama3.1:8b", "qwen2.5:7b"],
+      "cloud_fallback": "anthropic:claude-3-haiku",
+      "requirements": {
+        "reasoning_strength": 0.8,
+        "context_length_min": 16000,
+        "memory_gb_max": 6,
+        "supports_function_calling": true
+      }
+    },
+    "executor": {
+      "preferred": ["qwen2.5:14b", "llama3.1:70b"],
+      "cloud_fallback": "openai:gpt-4o",
+      "requirements": {
+        "coding_strength": 0.8,
+        "context_length_min": 16000,
+        "memory_gb_max": 12,
+        "supports_function_calling": true
+      }
+    }
+  },
+  "model_profiles": {
+    "mistral:latest": {
+      "capabilities": {
+        "context_length": 32000,
+        "quantization_level": "Q4_K_M",
+        "model_size": 7240000000,
+        "reasoning_strength": 0.7,
+        "coding_strength": 0.6,
+        "creativity": 0.5,
+        "multilingual_score": 0.8,
+        "supports_function_calling": false,
+        "supports_vision": false,
+        "supports_tools": false,
+        "min_memory_gb": 4.0,
+        "recommended_memory_gb": 5.0,
+        "thermal_sensitivity": 0.4,
+        "model_source": "ollama",
+        "requires_api_key": false
+      },
+      "temperature_defaults": {
+        "planner": 0.2,
+        "critic": 0.1,
+        "executor": 0.3
+      }
+    },
+    "qwen2.5:14b": {
+      "capabilities": {
+        "context_length": 32768,
+        "quantization_level": "Q4_K_M",
+        "model_size": 14600000000,
+        "reasoning_strength": 0.75,
+        "coding_strength": 0.85,
+        "creativity": 0.6,
+        "multilingual_score": 0.9,
+        "supports_function_calling": true,
+        "supports_vision": false,
+        "supports_tools": true,
+        "min_memory_gb": 8.0,
+        "recommended_memory_gb": 10.0,
+        "thermal_sensitivity": 0.6,
+        "model_source": "ollama",
+        "requires_api_key": false
+      },
+      "temperature_defaults": {
+        "planner": 0.25,
+        "critic": 0.15,
+        "executor": 0.35
+      }
+    },
+    "qwen2.5:7b": {
+      "capabilities": {
+        "context_length": 32768,
+        "quantization_level": "Q4_K_M",
+        "model_size": 7600000000,
+        "reasoning_strength": 0.7,
+        "coding_strength": 0.75,
+        "creativity": 0.5,
+        "multilingual_score": 0.85,
+        "supports_function_calling": true,
+        "supports_vision": false,
+        "supports_tools": true,
+        "min_memory_gb": 4.5,
+        "recommended_memory_gb": 5.5,
+        "thermal_sensitivity": 0.5,
+        "model_source": "ollama",
+        "requires_api_key": false
+      },
+      "temperature_defaults": {
+        "planner": 0.2,
+        "critic": 0.1,
+        "executor": 0.3
+      }
+    },
+    "llama3.1:8b": {
+      "capabilities": {
+        "context_length": 128000,
+        "quantization_level": "Q4_K_M",
+        "model_size": 8030000000,
+        "reasoning_strength": 0.8,
+        "coding_strength": 0.7,
+        "creativity": 0.6,
+        "multilingual_score": 0.9,
+        "supports_function_calling": true,
+        "supports_vision": false,
+        "supports_tools": true,
+        "min_memory_gb": 5.0,
+        "recommended_memory_gb": 6.0,
+        "thermal_sensitivity": 0.5,
+        "model_source": "ollama",
+        "requires_api_key": false
+      },
+      "temperature_defaults": {
+        "planner": 0.15,
+        "critic": 0.05,
+        "executor": 0.25
+      }
+    }
+  },
+  "cloud_providers": {
+    "openai": {
+      "api_endpoint": "https://api.openai.com/v1",
+      "models": {
+        "gpt-4o-mini": {
+          "capabilities": {
+            "context_length": 128000,
+            "quantization_level": "N/A",
+            "model_size": 8000000000,
+            "reasoning_strength": 0.85,
+            "coding_strength": 0.8,
+            "creativity": 0.7,
+            "multilingual_score": 0.95,
+            "supports_function_calling": true,
+            "supports_vision": true,
+            "supports_tools": true,
+            "min_memory_gb": 1.0,
+            "recommended_memory_gb": 2.0,
+            "thermal_sensitivity": 0.3,
+            "model_source": "openai",
+            "requires_api_key": true
+          }
+        },
+        "gpt-4o": {
+          "capabilities": {
+            "context_length": 128000,
+            "quantization_level": "N/A",
+            "model_size": 76000000000,
+            "reasoning_strength": 0.9,
+            "coding_strength": 0.85,
+            "creativity": 0.8,
+            "multilingual_score": 0.95,
+            "supports_function_calling": true,
+            "supports_vision": true,
+            "supports_tools": true,
+            "min_memory_gb": 2.0,
+            "recommended_memory_gb": 4.0,
+            "thermal_sensitivity": 0.4,
+            "model_source": "openai",
+            "requires_api_key": true
+          }
+        }
+      }
+    },
+    "anthropic": {
+      "api_endpoint": "https://api.anthropic.com",
+      "models": {
+        "claude-3-haiku": {
+          "capabilities": {
+            "context_length": 200000,
+            "quantization_level": "N/A",
+            "model_size": 40000000000,
+            "reasoning_strength": 0.8,
+            "coding_strength": 0.75,
+            "creativity": 0.7,
+            "multilingual_score": 0.9,
+            "supports_function_calling": true,
+            "supports_vision": true,
+            "supports_tools": true,
+            "min_memory_gb": 1.5,
+            "recommended_memory_gb": 3.0,
+            "thermal_sensitivity": 0.3,
+            "model_source": "anthropic",
+            "requires_api_key": true
+          }
+        }
+      }
+    }
+  },
+  "system_settings": {
+    "default_temperature": {
+      "planner": 0.2,
+      "critic": 0.1,
+      "executor": 0.3
+    },
+    "enable_cloud_fallbacks": false,
+    "max_memory_usage_gb": 14.0,
+    "thermal_threshold": 0.8,
+    "auto_discover_models": true,
+    "validation_timeout_seconds": 30
+  }
+}

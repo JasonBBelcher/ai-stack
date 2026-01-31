@@ -7,6 +7,15 @@ psutil>=5.9.0
 # Data validation and serialization
 pydantic>=2.0.0
 
+# JSON/YAML handling
+PyYAML>=6.0.0
+
+# API encryption and security
+cryptography>=46.0.0
+
+# HTTP requests for cloud APIs
+requests>=2.32.0
+
 # Async support (for future enhancements)
 asyncio-mqtt>=0.11.0
 
