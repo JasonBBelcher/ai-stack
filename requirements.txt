@@ -1,0 +1,27 @@
+# AI Stack Requirements
+# Core dependencies for the local AI stack
+
+# System monitoring
+psutil>=5.9.0
+
+# Data validation and serialization
+pydantic>=2.0.0
+
+# Async support (for future enhancements)
+asyncio-mqtt>=0.11.0
+
+# JSON handling improvements
+orjson>=3.8.0
+
+# Logging
+structlog>=23.0.0
+
+# Type checking
+mypy>=1.0.0
+
+# Development dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+black>=23.0.0
+flake8>=6.0.0
