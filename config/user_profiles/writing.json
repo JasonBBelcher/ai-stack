@@ -1,0 +1,43 @@
+{
+  "name": "writing",
+  "description": "Optimized for creative writing and content creation",
+  "created_at": "2026-01-31T13:23:49.704118",
+  "modified_at": "2026-01-31T13:23:49.704161",
+  "role_mappings": {
+    "planner": {
+      "preferred": [
+        "llama3.1:8b",
+        "mistral:latest"
+      ],
+      "creativity": 0.7,
+      "context_length_min": 16000
+    },
+    "critic": {
+      "preferred": [
+        "llama3.1:8b",
+        "claude-3-haiku"
+      ],
+      "creativity": 0.6
+    },
+    "executor": {
+      "preferred": [
+        "gpt-4o",
+        "claude-3.5-sonnet"
+      ],
+      "creativity": 0.8
+    }
+  },
+  "system_settings": {
+    "enable_cloud_fallbacks": true,
+    "max_memory_usage_gb": 10.0,
+    "thermal_threshold": 0.8
+  },
+  "selection_preferences": {
+    "prefer_local": false,
+    "prefer_larger": true
+  },
+  "cloud_settings": {
+    "enable_openai": true,
+    "enable_anthropic": true
+  }
+}

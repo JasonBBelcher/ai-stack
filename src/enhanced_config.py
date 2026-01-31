@@ -388,19 +388,9 @@ class AIStackConfig:
         
         return models_info
     
-    def get_system_status(self) -> Dict[str, Any]:
-        """Get comprehensive system status"""
-        return {
-            'config': {
-                'path': self.config_path,
-                'profile': self.profile_name or self.profile_manager.get_active_profile_name(),
-                'cloud_enabled': self.get_system_config().enable_cloud_fallbacks,
-                'max_memory_gb': self.get_system_config().max_memory_usage_gb
-            },
-            'models': self.model_registry.get_model_summary(),
-            'profiles': self.profile_manager.get_profile_statistics(),
-            'memory': self.memory_manager.get_memory_report()
-        }
+    def get_available_models(self) -> Dict[str, Dict[str, Any]]:
+        """Get all available models with information"""
+        return self.get_all_models()
     
     def export_configuration(self, export_path: str, include_profiles: bool = True) -> bool:
         """Export current configuration to file"""

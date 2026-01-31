@@ -279,6 +279,14 @@ class EnhancedAIStackController:
         
         return result
     
+    def get_all_models(self) -> Dict[str, Dict[str, Any]]:
+        """Get all available models"""
+        return self.config.get_all_models()
+    
+    def refresh_models(self) -> None:
+        """Refresh model discovery"""
+        self.config.refresh_models()
+    
     def get_system_status(self) -> Dict[str, Any]:
         """Get comprehensive system status with new system"""
         return {
@@ -317,10 +325,70 @@ class EnhancedAIStackController:
         """Create a new profile from current configuration"""
         return self.config.create_profile_from_current(name, description)
     
-    def get_available_models(self) -> Dict[str, Any]:
+    def get_all_models(self) -> Dict[str, Any]:
         """Get all available models"""
+        return self.config.get_all_models()
+    
+    def get_available_models(self) -> Dict[str, Dict[str, Any]]:
+        """Get all available models with information"""
         return self.config.get_all_models()
     
     def validate_model_for_role(self, model_name: str, role: str) -> Dict[str, Any]:
         """Validate if a model is suitable for a role"""
         return self.config.validate_model_for_role(model_name, role)
+    
+    def process_request(self, user_input: str, context: str = "", additional_context: str = "", 
+                         model_overrides: Optional[Dict[str, Any]] = None,
+                         temp_overrides: Optional[Dict[str, Any]] = None,
+                         config_overrides: Optional[Dict[str, Any]] = None) -> WorkflowResult:
+        """Process a user request through the new workflow"""
+        start_time = time.time()
+        result = WorkflowResult()
+        
+        try:
+            # Health check first
+            health = self.health_check()
+            if health["overall_status"] != "healthy":
+                result.error = f"System health issue: {health['overall_status']}"
+                return result
+            
+            # Phase 1: Planning
+            print("Starting planning phase...")
+            plan, error = self.planning_phase(user_input, context)
+            if error:
+                result.error = f"Planning failed: {error}"
+                return result
+            
+            result.plan = plan
+            print(f"Plan created with {len(plan.get('steps', []))} steps")
+            
+            # Phase 2: Critique
+            print("Starting critique phase...")
+            is_valid, final_plan, critique_error = self.critique_phase(plan)
+            if not is_valid and critique_error:
+                print(f"Critique warnings: {critique_error}")
+            
+            result.plan = final_plan
+            print("Critique phase completed")
+            
+            # Phase 3: Execution
+            print("Starting execution phase...")
+            output, error = self.execution_phase(final_plan, additional_context)
+            if error:
+                result.error = f"Execution failed: {error}"
+                return result
+            
+            result.output = output
+            result.success = True
+            
+            # Calculate execution metrics
+            final_memory = self.memory_manager.take_memory_snapshot()
+            result.execution_time = time.time() - start_time
+            result.memory_used = final_memory.used_gb - self.initial_memory.used_gb
+            
+            print(f"Workflow completed in {result.execution_time:.2f}s")
+            
+        except Exception as e:
+            result.error = f"Workflow error: {e}"
+        
+        return result
