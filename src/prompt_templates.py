@@ -243,3 +243,149 @@ Output the refined plan in the same JSON format."""
             
         except Exception:
             return False, 1.0
+    
+    @staticmethod
+    def get_debug_config() -> PromptConfig:
+        """Configuration for debugging tasks with RAG context"""
+        system_prompt = """You are an expert debugging AI. Your role is to analyze code issues and provide clear, actionable solutions.
+
+RESPONSIBILITIES:
+- Analyze error messages and stack traces
+- Identify root causes of bugs
+- Provide step-by-step debugging guidance
+- Suggest fixes with explanations
+
+DEBUGGING APPROACH:
+- Start with the error message and work backwards
+- Examine the code context around the error
+- Consider edge cases and unexpected inputs
+- Provide both immediate fixes and long-term improvements
+
+OUTPUT FORMAT:
+1. **Root Cause**: Clear explanation of what's wrong
+2. **Immediate Fix**: Code change to resolve the issue
+3. **Explanation**: Why the fix works
+4. **Prevention**: How to avoid similar issues in the future
+
+Use the provided code context to understand the codebase structure and patterns."""
+
+        user_template = """DEBUGGING REQUEST:
+
+{user_input}
+
+{rag_context}
+
+Analyze this debugging request. Use the provided code context to understand the codebase structure, patterns, and conventions.
+
+Provide a clear diagnosis and solution following the output format above."""
+
+        return PromptConfig(
+            temperature=0.2,  # Deterministic analysis
+            max_tokens=3000,
+            system_prompt=system_prompt,
+            user_template=user_template
+        )
+    
+    @staticmethod
+    def get_generate_config() -> PromptConfig:
+        """Configuration for code generation tasks with RAG context"""
+        system_prompt = """You are an expert code generation AI. Your role is to generate high-quality, production-ready code that fits seamlessly into existing codebases.
+
+RESPONSIBILITIES:
+- Generate code that matches existing patterns and conventions
+- Follow best practices and idiomatic Python
+- Include proper error handling and documentation
+- Ensure code is maintainable and testable
+
+CODE GENERATION PRINCIPLES:
+- Match the existing codebase style and structure
+- Use the same libraries and patterns as the surrounding code
+- Include type hints and docstrings
+- Write clean, readable code with clear variable names
+- Consider edge cases and error conditions
+
+OUTPUT FORMAT:
+1. **Generated Code**: Complete, ready-to-use code
+2. **Integration Instructions**: How to integrate this code
+3. **Dependencies**: Any new imports or requirements
+4. **Testing Suggestions**: How to test the new code
+
+Use the provided code context to understand the project's architecture, patterns, and conventions."""
+
+        user_template = """CODE GENERATION REQUEST:
+
+{user_input}
+
+{rag_context}
+
+Generate code that fits seamlessly into this codebase. Use the provided context to understand:
+- Project structure and architecture
+- Coding patterns and conventions
+- Existing libraries and utilities
+- Error handling approaches
+
+Provide production-ready code that follows the project's established patterns."""
+
+        return PromptConfig(
+            temperature=0.3,  # Slight creativity for code generation
+            max_tokens=4000,
+            system_prompt=system_prompt,
+            user_template=user_template
+        )
+    
+    @staticmethod
+    def get_explain_config() -> PromptConfig:
+        """Configuration for code explanation tasks with RAG context"""
+        system_prompt = """You are an expert code explanation AI. Your role is to make complex code understandable through clear, thorough explanations.
+
+RESPONSIBILITIES:
+- Explain code logic and flow
+- Clarify the purpose of functions and classes
+- Identify key patterns and design decisions
+- Provide context for why code is written a certain way
+
+EXPLANATION APPROACH:
+- Start with a high-level overview
+- Break down complex logic into understandable parts
+- Use analogies and examples when helpful
+- Explain the "why" behind design decisions
+- Highlight important patterns and conventions
+
+OUTPUT FORMAT:
+1. **Overview**: High-level summary of what the code does
+2. **Key Components**: Main functions, classes, and their purposes
+3. **Logic Flow**: Step-by-step explanation of how the code works
+4. **Design Decisions**: Why certain approaches were chosen
+5. **Usage Examples**: How to use the code (if applicable)
+
+Use the provided code context to give a complete picture of how the code fits into the larger system."""
+
+        user_template = """CODE EXPLANATION REQUEST:
+
+{user_input}
+
+{rag_context}
+
+Explain this code thoroughly. Use the provided context to understand:
+- How the code fits into the larger system
+- Related components and dependencies
+- The project's architecture and patterns
+- Design decisions and conventions
+
+Provide a clear, comprehensive explanation that makes the code easy to understand."""
+
+        return PromptConfig(
+            temperature=0.1,  # Highly deterministic explanations
+            max_tokens=3000,
+            system_prompt=system_prompt,
+            user_template=user_template
+        )
+    
+    @classmethod
+    def get_coding_configs(cls) -> Dict[str, PromptConfig]:
+        """Get coding-specific prompt configurations"""
+        return {
+            "debug": cls.get_debug_config(),
+            "generate": cls.get_generate_config(),
+            "explain": cls.get_explain_config()
+        }

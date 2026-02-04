@@ -463,8 +463,10 @@ def main():
     
     # Initialize enhanced controller
     try:
-        controller = SimplifiedAIStackController()
+        controller = SimplifiedAIStackController(project_path=args.project_path)
         print("✅ Enhanced AI Stack Controller initialized")
+        if args.project_path:
+            print(f"📁 Project path: {args.project_path}")
     except Exception as e:
         print(f"❌ Error initializing controller: {e}")
         import traceback
@@ -762,44 +764,12 @@ def process_request(controller, args):
         if config_overrides:
             temp_overrides.update(cloud_overrides)
         
-        # Handle RAG context if project path is provided
-        rag_context = ""
-        if args.project_path:
-            try:
-                from src.rag import CodeEmbedder, FAISSVectorStore, ContextRetriever
-                
-                project_path = args.project_path
-                index_path = os.path.join(project_path, ".ai-stack-index")
-                
-                if os.path.exists(f"{index_path}.index"):
-                    print(f"📚 Loading RAG index from: {index_path}")
-                    
-                    # Initialize RAG components
-                    embedder = CodeEmbedder(model_name="BAAI/bge-small-en-v1.5")
-                    vector_store = FAISSVectorStore(index_type="Flat", dimension=embedder.get_embedding_dimension())
-                    vector_store.load(index_path)
-                    retriever = ContextRetriever(embedder, vector_store)
-                    
-                    # Retrieve context
-                    print(f"🔍 Retrieving relevant context for query...")
-                    rag_context = retriever.retrieve_and_format(args.input, k=5)
-                    
-                    if rag_context:
-                        print(f"✅ Retrieved {len(rag_context)} characters of context")
-                    else:
-                        print("⚠️ No relevant context found")
-                else:
-                    print(f"⚠️ No RAG index found at: {index_path}")
-                    print("   Build index with: python3 main.py --index <project-path>")
-            except ImportError:
-                print("⚠️ RAG dependencies not installed. Install with: pip install faiss-cpu sentence-transformers")
-            except Exception as e:
-                print(f"⚠️ Error loading RAG context: {e}")
-        
-        # Combine RAG context with user-provided context
-        combined_context = rag_context
+        # Combine user-provided context
+        combined_context = ""
         if args.context:
-            combined_context += f"\n\nAdditional context:\n{args.context}"
+            combined_context = args.context
+        if args.additional_context:
+            combined_context += f"\n\n{args.additional_context}"
         
         print("🤖 Processing request with enhanced model system...")
         if args.verbose:
@@ -807,9 +777,9 @@ def process_request(controller, args):
             print(f"Temperature override: {args.temperature}")
             print(f"Memory limit: {args.max_memory}")
             print(f"Cloud enabled: {args.enable_cloud}")
-            print(f"RAG context: {'Yes' if rag_context else 'No'}")
+            print(f"Project path: {args.project_path}")
         
-        # Process the request
+        # Process the request (RAG and intent routing handled by controller)
         result = controller.process_request(
             user_input=args.input,
             context=combined_context,
@@ -820,6 +790,16 @@ def process_request(controller, args):
             print(f"✅ Request completed successfully")
             print(f"⏱️ Execution Time: {result.execution_time:.2f}s")
             print(f"💾 Memory Used: {result.memory_used:.2f}GB")
+            
+            # Print metadata if available
+            if hasattr(result, 'metadata') and result.metadata:
+                print(f"🎯 Intent: {result.metadata.get('intent', 'unknown')}")
+                print(f"📊 Intent Confidence: {result.metadata.get('intent_confidence', 0):.2f}")
+                print(f"📚 RAG Used: {'Yes' if result.metadata.get('rag_used', False) else 'No'}")
+                if result.metadata.get('rag_used', False):
+                    print(f"📄 RAG Context Length: {result.metadata.get('rag_context_length', 0)} characters")
+                print(f"📝 Template: {result.metadata.get('template_used', 'unknown')}")
+            
             print("")
             print("=== Output ===")
             print(result.output)

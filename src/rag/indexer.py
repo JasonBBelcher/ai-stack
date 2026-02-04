@@ -26,6 +26,11 @@ class CodeIndexer:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.supported_extensions = {'.py', '.js', '.ts', '.java', '.cpp', '.c', '.h', '.go', '.rs'}
+        self.exclude_dirs = {
+            'venv', 'env', '.venv', '.env', 'node_modules', '.git',
+            '__pycache__', '.pytest_cache', 'dist', 'build', '.tox',
+            '.mypy_cache', 'htmlcov', '.coverage', 'site-packages'
+        }
     
     def index_directory(self, directory: str) -> List[Dict[str, Any]]:
         """
@@ -45,6 +50,10 @@ class CodeIndexer:
             return chunks
         
         for file_path in directory_path.rglob('*'):
+            # Skip excluded directories
+            if any(excluded_dir in file_path.parts for excluded_dir in self.exclude_dirs):
+                continue
+            
             if file_path.is_file() and file_path.suffix in self.supported_extensions:
                 try:
                     file_chunks = self.index_file(str(file_path))
@@ -67,8 +76,14 @@ class CodeIndexer:
             List of chunks with metadata
         """
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            # Try UTF-8 first, then fallback to latin-1
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except UnicodeDecodeError:
+                logger.warning(f"UTF-8 decode failed for {file_path}, trying latin-1")
+                with open(file_path, 'r', encoding='latin-1') as f:
+                    content = f.read()
             
             chunks = self._chunk_content(content, file_path)
             return chunks
