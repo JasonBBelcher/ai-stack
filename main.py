@@ -117,6 +117,10 @@ Examples:
     parser.add_argument("--quick-setup", action="store_true", help="Quick setup for new users")
     parser.add_argument("--demo", action="store_true", help="Run demonstration of features")
     
+    # RAG (Retrieval-Augmented Generation) commands
+    parser.add_argument("--index", metavar="PATH", help="Build RAG index for codebase at PATH")
+    parser.add_argument("--project-path", metavar="PATH", help="Use RAG context from codebase at PATH")
+    
     return parser
 
 
@@ -365,6 +369,78 @@ def handle_cloud_command(controller, args):
                 print(f"⚠️ {provider}: No API key configured")
 
 
+def handle_index_command(args):
+    """Handle RAG index building command"""
+    try:
+        from src.rag import CodeIndexer, CodeEmbedder, FAISSVectorStore
+        
+        project_path = args.index
+        if not os.path.exists(project_path):
+            print(f"❌ Error: Path does not exist: {project_path}")
+            return False
+        
+        print(f"🔍 Building RAG index for: {project_path}")
+        print("="*50)
+        
+        # Initialize components
+        print("📦 Initializing indexer...")
+        indexer = CodeIndexer(chunk_size=512, chunk_overlap=50)
+        
+        print("📦 Loading embedding model...")
+        embedder = CodeEmbedder(model_name="BAAI/bge-small-en-v1.5")
+        
+        print("📦 Initializing vector store...")
+        vector_store = FAISSVectorStore(index_type="Flat", dimension=embedder.get_embedding_dimension())
+        
+        # Index files
+        print("📄 Indexing code files...")
+        chunks = indexer.index_directory(project_path)
+        
+        if not chunks:
+            print("⚠️ No code files found to index")
+            return False
+        
+        print(f"✅ Found {len(chunks)} code chunks")
+        
+        # Generate embeddings
+        print("🔄 Generating embeddings...")
+        texts = [chunk['text'] for chunk in chunks]
+        embeddings = embedder.embed_texts(texts)
+        print(f"✅ Generated {len(embeddings)} embeddings")
+        
+        # Add to vector store
+        print("💾 Adding embeddings to vector store...")
+        vector_store.add_embeddings(embeddings, chunks)
+        print(f"✅ Added {vector_store.get_size()} embeddings to index")
+        
+        # Save index
+        index_path = os.path.join(project_path, ".ai-stack-index")
+        print(f"💾 Saving index to: {index_path}")
+        vector_store.save(index_path)
+        print("✅ Index saved successfully")
+        
+        print("="*50)
+        print(f"🎉 Indexing complete!")
+        print(f"   Total chunks: {len(chunks)}")
+        print(f"   Index location: {index_path}")
+        print("")
+        print("💡 Use this index with:")
+        print(f"   python3 main.py --project-path {project_path} \"your query\"")
+        
+        return True
+        
+    except ImportError as e:
+        print(f"❌ Error: RAG dependencies not installed")
+        print(f"   {e}")
+        print("   Install with: pip install faiss-cpu sentence-transformers")
+        return False
+    except Exception as e:
+        print(f"❌ Error building index: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 def main():
     """Main entry point"""
     parser = create_enhanced_parser()
@@ -426,6 +502,10 @@ def main():
     
     if args.cloud:
         handle_cloud_command(controller, args)
+        return
+    
+    if args.index:
+        handle_index_command(args)
         return
     
     if args.interactive:
@@ -682,17 +762,57 @@ def process_request(controller, args):
         if config_overrides:
             temp_overrides.update(cloud_overrides)
         
+        # Handle RAG context if project path is provided
+        rag_context = ""
+        if args.project_path:
+            try:
+                from src.rag import CodeEmbedder, FAISSVectorStore, ContextRetriever
+                
+                project_path = args.project_path
+                index_path = os.path.join(project_path, ".ai-stack-index")
+                
+                if os.path.exists(f"{index_path}.index"):
+                    print(f"📚 Loading RAG index from: {index_path}")
+                    
+                    # Initialize RAG components
+                    embedder = CodeEmbedder(model_name="BAAI/bge-small-en-v1.5")
+                    vector_store = FAISSVectorStore(index_type="Flat", dimension=embedder.get_embedding_dimension())
+                    vector_store.load(index_path)
+                    retriever = ContextRetriever(embedder, vector_store)
+                    
+                    # Retrieve context
+                    print(f"🔍 Retrieving relevant context for query...")
+                    rag_context = retriever.retrieve_and_format(args.input, k=5)
+                    
+                    if rag_context:
+                        print(f"✅ Retrieved {len(rag_context)} characters of context")
+                    else:
+                        print("⚠️ No relevant context found")
+                else:
+                    print(f"⚠️ No RAG index found at: {index_path}")
+                    print("   Build index with: python3 main.py --index <project-path>")
+            except ImportError:
+                print("⚠️ RAG dependencies not installed. Install with: pip install faiss-cpu sentence-transformers")
+            except Exception as e:
+                print(f"⚠️ Error loading RAG context: {e}")
+        
+        # Combine RAG context with user-provided context
+        combined_context = rag_context
+        if args.context:
+            combined_context += f"\n\nAdditional context:\n{args.context}"
+        
         print("🤖 Processing request with enhanced model system...")
         if args.verbose:
             print(f"Model overrides: {model_overrides}")
             print(f"Temperature override: {args.temperature}")
             print(f"Memory limit: {args.max_memory}")
             print(f"Cloud enabled: {args.enable_cloud}")
+            print(f"RAG context: {'Yes' if rag_context else 'No'}")
         
         # Process the request
         result = controller.process_request(
             user_input=args.input,
-            context=args.context,
+            context=combined_context,
             additional_context=args.additional_context
         )
         
