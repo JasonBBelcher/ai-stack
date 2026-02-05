@@ -1,0 +1,142 @@
+{
+  "profile_name": "writing",
+  "description": "Optimized RAG profile for writing tasks with creative and stylistic retrieval",
+  "version": "1.0",
+  "created": "2026-02-04",
+  
+  "chunking": {
+    "chunk_size": 768,
+    "chunk_overlap": 128,
+    "strategy": "paragraph",
+    "preserve_structure": true,
+    "include_style_markers": true,
+    "include_tone_indicators": true
+  },
+  
+  "embedding": {
+    "model": "nomic-embed-text",
+    "dimension": 768,
+    "batch_size": 32,
+    "normalize": true,
+    "device": "metal"
+  },
+  
+  "retrieval": {
+    "top_k": 7,
+    "min_similarity": 0.65,
+    "max_results": 15,
+    "rerank": true,
+    "rerank_model": "cross-encoder",
+    "diversity_penalty": 0.15,
+    "include_metadata": true,
+    "style_aware": true
+  },
+  
+  "context_window": {
+    "max_tokens": 6144,
+    "reserve_for_response": 2048,
+    "max_context_tokens": 4096,
+    "truncate_strategy": "balanced"
+  },
+  
+  "model_preferences": {
+    "retrieval": {
+      "preferred_models": ["mistral:latest", "llama3.1:8b"],
+      "fallback_models": ["qwen2.5:7b"],
+      "cloud_fallback": ["gpt-4o-mini"],
+      "requirements": {
+        "tags": ["generation", "multilingual"],
+        "min_generation_strength": 0.6,
+        "max_memory_gb": 8
+      }
+    },
+    "generation": {
+      "preferred_models": ["llama3.1:8b", "mistral:latest"],
+      "fallback_models": ["qwen2.5:7b"],
+      "cloud_fallback": ["gpt-4o", "claude-3-haiku"],
+      "requirements": {
+        "tags": ["generation", "multilingual"],
+        "min_generation_strength": 0.7,
+        "max_memory_gb": 10
+      }
+    },
+    "critique": {
+      "preferred_models": ["qwen2.5:14b"],
+      "fallback_models": ["llama3.1:8b"],
+      "cloud_fallback": ["gpt-4o"],
+      "requirements": {
+        "tags": ["reasoning", "generation"],
+        "min_reasoning_strength": 0.7,
+        "min_generation_strength": 0.7,
+        "max_memory_gb": 12
+      }
+    }
+  },
+  
+  "generation": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "top_k": 50,
+    "max_tokens": 1536,
+    "presence_penalty": 0.2,
+    "frequency_penalty": 0.2
+  },
+  
+  "post_processing": {
+    "format_output": true,
+    "check_grammar": true,
+    "check_style": true,
+    "maintain_voice": true,
+    "max_edits": 10
+  },
+  
+  "memory_optimization": {
+    "cache_embeddings": true,
+    "cache_retrieval": true,
+    "max_cache_size_mb": 512,
+    "eviction_policy": "lru"
+  },
+  
+  "quality_metrics": {
+    "track_relevance": true,
+    "track_coherence": true,
+    "track_creativity": true,
+    "track_style_consistency": true,
+    "min_relevance_score": 0.65,
+    "max_latency_ms": 8000
+  },
+  
+  "special_features": {
+    "style_transfer": {
+      "enabled": true,
+      "preserve_meaning": true
+    },
+    "tone_adjustment": {
+      "enabled": true,
+      "supported_tones": ["formal", "casual", "professional", "creative"]
+    },
+    "content_expansion": {
+      "enabled": true,
+      "max_expansion_ratio": 2.0
+    },
+    "summarization": {
+      "enabled": true,
+      "compression_ratios": [0.25, 0.5, 0.75]
+    }
+  },
+  
+  "m3_mac_optimizations": {
+    "use_metal_acceleration": true,
+    "batch_retrieval": true,
+    "parallel_embedding": true,
+    "memory_efficient_mode": true,
+    "preload_models": ["llama3.1:8b", "mistral:latest"]
+  },
+  
+  "fallback_strategy": {
+    "on_retrieval_failure": "use_context_only",
+    "on_generation_failure": "retry_with_smaller_model",
+    "max_retries": 2,
+    "cloud_fallback_enabled": true
+  }
+}

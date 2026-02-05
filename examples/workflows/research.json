@@ -1,0 +1,132 @@
+{
+  "workflow_name": "Research Assistance",
+  "description": "Assist with research tasks by gathering information, analyzing findings, and synthesizing results",
+  "version": "1.0",
+  "profile": "research",
+  "rag_profile": "research",
+  
+  "steps": [
+    {
+      "name": "Define Research Question",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Help refine this research question to be more specific and actionable: {{research_question}}",
+        "profile": "research"
+      },
+      "description": "Clarify and focus the research objective"
+    },
+    {
+      "name": "Gather Background Information",
+      "type": "rag_query",
+      "parameters": {
+        "query": "Provide background information on {{research_topic}} including key concepts, terminology, and foundational knowledge",
+        "profile": "research"
+      },
+      "description": "Collect essential background context"
+    },
+    {
+      "name": "Identify Key Sources",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Identify authoritative sources for researching {{research_topic}}. Include academic papers, industry reports, expert blogs, and relevant documentation. Prioritize recent and reputable sources.",
+        "profile": "research"
+      },
+      "description": "Find credible information sources"
+    },
+    {
+      "name": "Index Research Documents",
+      "type": "rag_index",
+      "parameters": {
+        "path": "./research_documents",
+        "profile": "research"
+      },
+      "description": "Index collected research materials"
+    },
+    {
+      "name": "Extract Key Findings",
+      "type": "rag_query_batch",
+      "parameters": {
+        "queries": [
+          "What are the main theories related to {{research_topic}}?",
+          "What are the current challenges in this field?",
+          "What recent developments have occurred?",
+          "What are the differing viewpoints or schools of thought?"
+        ],
+        "profile": "research"
+      },
+      "description": "Extract important information from sources"
+    },
+    {
+      "name": "Analyze Findings",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Analyze the extracted findings to identify patterns, contradictions, and gaps in the research. Organize the information thematically and highlight significant insights.",
+        "profile": "research"
+      },
+      "description": "Interpret and organize research results"
+    },
+    {
+      "name": "Synthesize Conclusions",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Synthesize the analyzed findings into clear conclusions about {{research_topic}}. Address the original research question and provide evidence-based answers. Identify areas for further research.",
+        "profile": "research"
+      },
+      "description": "Draw evidence-based conclusions"
+    },
+    {
+      "name": "Generate Research Report",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Create a comprehensive research report presenting the findings, analysis, and conclusions. Include an abstract, introduction, methodology, results, discussion, and bibliography. Format according to academic standards.",
+        "profile": "research"
+      },
+      "description": "Produce a professional research document"
+    }
+  ],
+  
+  "configuration": {
+    "rag": {
+      "chunk_size": 1024,
+      "chunk_overlap": 200,
+      "embedding_model": "nomic-embed-text"
+    },
+    "cascade": {
+      "stages": {
+        "planning": {
+          "model": "llama3.1:8b",
+          "max_iterations": 3
+        },
+        "critique": {
+          "model": "qwen2.5:14b",
+          "max_iterations": 3
+        },
+        "execution": {
+          "model": "gpt-4o",
+          "max_iterations": 2
+        }
+      }
+    }
+  },
+  
+  "variables": {
+    "research_question": "Initial research question to be refined",
+    "research_topic": "Main topic of the research"
+  },
+  
+  "expected_outcomes": [
+    "Well-defined research question and scope",
+    "Comprehensive background information",
+    "List of authoritative sources",
+    "Key findings extracted from sources",
+    "Thematic analysis of information",
+    "Evidence-based conclusions",
+    "Professional research report"
+  ],
+  
+  "estimated_duration": "30-60 minutes",
+  "resource_requirements": {
+    "memory_gb": 10,
+    "models": ["llama3.1:8b", "qwen2.5:14b", "gpt-4o"]
+  }
+}

@@ -175,6 +175,62 @@ python3 main.py --profile list
 # - research  (optimized for analysis)
 ```
 
+### Advanced Features (RAG and Cascade)
+
+#### RAG (Retrieval-Augmented Generation)
+The AI Stack now includes advanced RAG capabilities for enhanced context awareness:
+
+```bash
+# Index a codebase or document collection
+python3 main.py --index /path/to/codebase
+
+# Query with RAG context (automatically uses indexed content)
+python3 main.py --project-path /path/to/codebase "How does the memory manager work?"
+
+# Check RAG status and statistics
+python3 main.py --status  # RAG information included in status output
+```
+
+Three specialized RAG profiles are available:
+- **coding**: Optimized for code analysis with AST-based chunking
+- **research**: Optimized for document analysis with semantic chunking
+- **writing**: Optimized for creative content with paragraph-based chunking
+
+#### Cascade Processing
+Complex tasks can be processed through multi-stage cascade workflows:
+
+```bash
+# Submit complex requests that automatically trigger cascade processing
+python3 main.py "Create a REST API for a todo application with authentication"
+
+# Start interactive cascade session
+python3 main.py --interactive
+
+# View cascade operations
+python3 main.py --status  # Shows active cascade operations
+```
+
+#### Example Workflows
+Pre-built workflows demonstrate advanced capabilities:
+
+```bash
+# Run a workflow (requires workflow runner script)
+python3 examples/run_workflow.py code_analysis /path/to/project
+
+# Available workflows:
+# - code_analysis: Analyze codebase structure and identify issues
+# - document_qa: Answer questions about documents
+# - bug_fixing: Identify and fix bugs in code
+# - refactoring: Improve code structure and readability
+# - research: Gather and synthesize research information
+```
+
+For detailed usage of RAG and Cascade features, see:
+- `QUICK_START.md` - 5-minute getting started guide
+- `COMPREHENSIVE_GUIDE.md` - Complete feature reference
+- `docs/rag_usage.md` - RAG usage guide
+- `docs/cascade_usage.md` - Cascade usage guide
+
 ### Advanced Usage
 
 #### Model Override
@@ -239,10 +295,22 @@ ai-stack/
 │   ├── profile_manager.py        # User profiles
 │   ├── memory_manager.py         # Memory/thermal monitoring
 │   ├── api_keys_manager.py       # Cloud API keys
-│   └── prompt_templates.py       # System prompts
-└── docs/
-    ├── generic_models_implementation.md
-    └── api_reference.md
+│   ├── prompt_templates.py       # System prompts
+│   ├── rag/                      # RAG system components
+│   ├── cascade/                  # Cascade processing components
+│   ├── monitoring/               # Performance monitoring tools
+│   └── prompt_engineer/          # Prompt engineering utilities
+├── tests/                     # Organized test suite
+│   ├── rag/                     # RAG system tests
+│   ├── cascade/                 # Cascade processing tests
+│   ├── integration/             # Integration tests
+│   ├── phases/                 # Phase-specific tests
+│   ├── misc/                   # Miscellaneous tests
+│   └── *.py                    # Core component tests
+├── docs/                      # Current documentation
+├── examples/                  # Example workflows and usage
+├── archive/                   # Historical documentation
+└── venv/                      # Virtual environment
 ```
 
 ## ⚙️ Configuration

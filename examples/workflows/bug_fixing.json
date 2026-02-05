@@ -1,0 +1,117 @@
+{
+  "workflow_name": "Bug Identification and Fixing",
+  "description": "Identify, diagnose, and fix bugs in code using AI assistance",
+  "version": "1.0",
+  "profile": "coding",
+  "rag_profile": "coding",
+  
+  "steps": [
+    {
+      "name": "Index Codebase",
+      "type": "rag_index",
+      "parameters": {
+        "path": "./src",
+        "profile": "coding"
+      },
+      "description": "Index the source code for bug analysis"
+    },
+    {
+      "name": "Analyze Error Message",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Analyze this error message and identify the most likely causes: {{error_message}}",
+        "profile": "coding"
+      },
+      "description": "Understand the error and potential causes"
+    },
+    {
+      "name": "Locate Problematic Code",
+      "type": "rag_query",
+      "parameters": {
+        "query": "Find code related to {{error_component}} that might be causing the issue",
+        "profile": "coding"
+      },
+      "description": "Retrieve relevant code sections"
+    },
+    {
+      "name": "Diagnose Root Cause",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Based on the error message and retrieved code, diagnose the root cause of the bug. Explain the problem in detail and identify the specific code that needs to be fixed.",
+        "profile": "coding"
+      },
+      "description": "Determine the exact cause of the bug"
+    },
+    {
+      "name": "Propose Fix",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Propose a fix for the identified bug. Provide the corrected code and explain why this solution addresses the root cause. Consider best practices and potential side effects.",
+        "profile": "coding"
+      },
+      "description": "Generate a solution for the bug"
+    },
+    {
+      "name": "Validate Fix",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Validate the proposed fix by considering edge cases, potential side effects, and alignment with the overall codebase architecture. Suggest any improvements to the fix if needed.",
+        "profile": "coding"
+      },
+      "description": "Ensure the fix is robust and appropriate"
+    },
+    {
+      "name": "Generate Patch",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Create a clean patch or diff that implements the fix. Include explanatory comments and follow the project's coding standards.",
+        "profile": "coding"
+      },
+      "description": "Produce the final code changes"
+    }
+  ],
+  
+  "configuration": {
+    "rag": {
+      "chunk_size": 512,
+      "chunk_overlap": 50,
+      "embedding_model": "nomic-embed-text"
+    },
+    "cascade": {
+      "stages": {
+        "planning": {
+          "model": "llama3.1:8b",
+          "max_iterations": 2
+        },
+        "critique": {
+          "model": "qwen2.5:14b",
+          "max_iterations": 2
+        },
+        "execution": {
+          "model": "qwen2.5-coder:14b",
+          "max_iterations": 1
+        }
+      }
+    }
+  },
+  
+  "variables": {
+    "error_message": "Sample error message to be replaced",
+    "error_component": "Component name related to the error"
+  },
+  
+  "expected_outcomes": [
+    "Clear understanding of the error and its causes",
+    "Precise location of problematic code",
+    "Well-reasoned diagnosis of the root cause",
+    "Effective fix proposal with explanation",
+    "Validated solution considering edge cases",
+    "Clean, standards-compliant patch"
+  ],
+  
+  "estimated_duration": "15-25 minutes",
+  "resource_requirements": {
+    "memory_gb": 8,
+    "models": ["llama3.1:8b", "qwen2.5:14b", "qwen2.5-coder:14b"]
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "profile_name": "coding",
+  "description": "Optimized RAG profile for coding tasks with code-aware retrieval and generation",
+  "version": "1.0",
+  "created": "2026-02-04",
+  
+  "chunking": {
+    "chunk_size": 512,
+    "chunk_overlap": 50,
+    "strategy": "code_aware",
+    "language": "python",
+    "preserve_structure": true,
+    "include_comments": true,
+    "include_docstrings": true
+  },
+  
+  "embedding": {
+    "model": "nomic-embed-text",
+    "dimension": 768,
+    "batch_size": 32,
+    "normalize": true,
+    "device": "metal"
+  },
+  
+  "retrieval": {
+    "top_k": 5,
+    "min_similarity": 0.7,
+    "max_results": 10,
+    "rerank": true,
+    "rerank_model": "cross-encoder",
+    "diversity_penalty": 0.1,
+    "include_metadata": true
+  },
+  
+  "context_window": {
+    "max_tokens": 4096,
+    "reserve_for_response": 1024,
+    "max_context_tokens": 3072,
+    "truncate_strategy": "recent_first"
+  },
+  
+  "model_preferences": {
+    "retrieval": {
+      "preferred_models": ["llama3.1:8b", "qwen2.5:7b"],
+      "fallback_models": ["mistral:latest"],
+      "cloud_fallback": ["gpt-4o-mini"],
+      "requirements": {
+        "tags": ["coding", "function-calling"],
+        "min_coding_strength": 0.6,
+        "max_memory_gb": 8
+      }
+    },
+    "generation": {
+      "preferred_models": ["qwen2.5:14b", "llama3.1:8b"],
+      "fallback_models": ["qwen2.5:7b"],
+      "cloud_fallback": ["gpt-4o", "claude-3-haiku"],
+      "requirements": {
+        "tags": ["coding", "reasoning", "generation"],
+        "min_coding_strength": 0.7,
+        "min_reasoning_strength": 0.6,
+        "max_memory_gb": 12
+      }
+    },
+    "critique": {
+      "preferred_models": ["qwen2.5:14b"],
+      "fallback_models": ["llama3.1:8b"],
+      "cloud_fallback": ["gpt-4o"],
+      "requirements": {
+        "tags": ["coding", "reasoning"],
+        "min_reasoning_strength": 0.8,
+        "max_memory_gb": 12
+      }
+    }
+  },
+  
+  "generation": {
+    "temperature": 0.3,
+    "top_p": 0.9,
+    "top_k": 40,
+    "max_tokens": 1024,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 0.0,
+    "stop_sequences": ["```", "END_CODE"]
+  },
+  
+  "post_processing": {
+    "format_code": true,
+    "add_comments": false,
+    "validate_syntax": true,
+    "include_explanations": true,
+    "max_explanation_length": 200
+  },
+  
+  "memory_optimization": {
+    "cache_embeddings": true,
+    "cache_retrieval": true,
+    "max_cache_size_mb": 512,
+    "eviction_policy": "lru"
+  },
+  
+  "quality_metrics": {
+    "track_relevance": true,
+    "track_accuracy": true,
+    "track_latency": true,
+    "min_relevance_score": 0.7,
+    "max_latency_ms": 5000
+  },
+  
+  "special_features": {
+    "code_completion": {
+      "enabled": true,
+      "context_lines": 10,
+      "suggest_imports": true
+    },
+    "code_explanation": {
+      "enabled": true,
+      "detail_level": "medium"
+    },
+    "bug_detection": {
+      "enabled": true,
+      "severity_threshold": "warning"
+    },
+    "refactoring_suggestions": {
+      "enabled": true,
+      "max_suggestions": 3
+    }
+  },
+  
+  "m3_mac_optimizations": {
+    "use_metal_acceleration": true,
+    "batch_retrieval": true,
+    "parallel_embedding": true,
+    "memory_efficient_mode": true,
+    "preload_models": ["llama3.1:8b"]
+  },
+  
+  "fallback_strategy": {
+    "on_retrieval_failure": "use_context_only",
+    "on_generation_failure": "retry_with_smaller_model",
+    "max_retries": 2,
+    "cloud_fallback_enabled": true
+  }
+}

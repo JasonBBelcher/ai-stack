@@ -1,0 +1,143 @@
+{
+  "profile_name": "research",
+  "description": "Optimized RAG profile for research tasks with comprehensive retrieval and analysis",
+  "version": "1.0",
+  "created": "2026-02-04",
+  
+  "chunking": {
+    "chunk_size": 1024,
+    "chunk_overlap": 200,
+    "strategy": "semantic",
+    "preserve_structure": true,
+    "include_citations": true,
+    "include_references": true
+  },
+  
+  "embedding": {
+    "model": "nomic-embed-text",
+    "dimension": 768,
+    "batch_size": 32,
+    "normalize": true,
+    "device": "metal"
+  },
+  
+  "retrieval": {
+    "top_k": 10,
+    "min_similarity": 0.6,
+    "max_results": 20,
+    "rerank": true,
+    "rerank_model": "cross-encoder",
+    "diversity_penalty": 0.2,
+    "include_metadata": true,
+    "include_citations": true
+  },
+  
+  "context_window": {
+    "max_tokens": 8192,
+    "reserve_for_response": 2048,
+    "max_context_tokens": 6144,
+    "truncate_strategy": "relevant_first"
+  },
+  
+  "model_preferences": {
+    "retrieval": {
+      "preferred_models": ["llama3.1:8b", "qwen2.5:7b"],
+      "fallback_models": ["mistral:latest"],
+      "cloud_fallback": ["gpt-4o-mini"],
+      "requirements": {
+        "tags": ["reasoning", "generation"],
+        "min_reasoning_strength": 0.6,
+        "max_memory_gb": 8
+      }
+    },
+    "generation": {
+      "preferred_models": ["qwen2.5:14b"],
+      "fallback_models": ["llama3.1:8b"],
+      "cloud_fallback": ["gpt-4o", "claude-3-haiku"],
+      "requirements": {
+        "tags": ["reasoning", "generation", "long-context"],
+        "min_reasoning_strength": 0.8,
+        "min_generation_strength": 0.6,
+        "max_memory_gb": 12
+      }
+    },
+    "critique": {
+      "preferred_models": ["qwen2.5:14b"],
+      "fallback_models": ["llama3.1:8b"],
+      "cloud_fallback": ["gpt-4o"],
+      "requirements": {
+        "tags": ["reasoning", "long-context"],
+        "min_reasoning_strength": 0.85,
+        "max_memory_gb": 12
+      }
+    }
+  },
+  
+  "generation": {
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "top_k": 50,
+    "max_tokens": 2048,
+    "presence_penalty": 0.1,
+    "frequency_penalty": 0.1
+  },
+  
+  "post_processing": {
+    "format_output": true,
+    "add_citations": true,
+    "include_references": true,
+    "summarize_findings": true,
+    "max_summary_length": 300
+  },
+  
+  "memory_optimization": {
+    "cache_embeddings": true,
+    "cache_retrieval": true,
+    "max_cache_size_mb": 1024,
+    "eviction_policy": "lru"
+  },
+  
+  "quality_metrics": {
+    "track_relevance": true,
+    "track_accuracy": true,
+    "track_latency": true,
+    "track_citation_accuracy": true,
+    "min_relevance_score": 0.6,
+    "max_latency_ms": 10000
+  },
+  
+  "special_features": {
+    "source_attribution": {
+      "enabled": true,
+      "min_confidence": 0.7
+    },
+    "fact_checking": {
+      "enabled": true,
+      "strictness": "medium"
+    },
+    "cross_reference": {
+      "enabled": true,
+      "max_sources": 5
+    },
+    "literature_review": {
+      "enabled": true,
+      "include_recent": true,
+      "days_threshold": 365
+    }
+  },
+  
+  "m3_mac_optimizations": {
+    "use_metal_acceleration": true,
+    "batch_retrieval": true,
+    "parallel_embedding": true,
+    "memory_efficient_mode": true,
+    "preload_models": ["qwen2.5:14b"]
+  },
+  
+  "fallback_strategy": {
+    "on_retrieval_failure": "expand_search",
+    "on_generation_failure": "retry_with_cloud_model",
+    "max_retries": 3,
+    "cloud_fallback_enabled": true
+  }
+}

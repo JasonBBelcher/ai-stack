@@ -31,6 +31,9 @@ class UserProfile:
     # Cloud provider settings
     cloud_settings: Dict[str, Any]
     
+    # Cascade processing settings
+    cascade_settings: Dict[str, Any]
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization"""
         data = asdict(self)

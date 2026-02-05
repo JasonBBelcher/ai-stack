@@ -1,0 +1,116 @@
+{
+  "workflow_name": "Code Refactoring",
+  "description": "Refactor code to improve structure, readability, and maintainability",
+  "version": "1.0",
+  "profile": "coding",
+  "rag_profile": "coding",
+  
+  "steps": [
+    {
+      "name": "Index Codebase",
+      "type": "rag_index",
+      "parameters": {
+        "path": "./src",
+        "profile": "coding"
+      },
+      "description": "Index the source code for refactoring analysis"
+    },
+    {
+      "name": "Identify Refactoring Targets",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Analyze the codebase to identify areas that would benefit from refactoring. Look for code smells such as duplicated code, long methods, large classes, and complex conditionals. Prioritize by impact and effort required.",
+        "profile": "coding"
+      },
+      "description": "Find code sections that need refactoring"
+    },
+    {
+      "name": "Analyze Target Code",
+      "type": "rag_query",
+      "parameters": {
+        "query": "Show the full implementation of {{target_component}} to understand its current structure and dependencies",
+        "profile": "coding"
+      },
+      "description": "Retrieve detailed code for refactoring targets"
+    },
+    {
+      "name": "Design Refactoring Plan",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Create a detailed refactoring plan for {{target_component}}. Include specific steps, expected improvements, and potential risks. Consider design patterns that could be applied and how the refactoring will improve maintainability.",
+        "profile": "coding"
+      },
+      "description": "Plan the refactoring approach"
+    },
+    {
+      "name": "Implement Refactoring",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Implement the refactoring plan for {{target_component}}. Provide the refactored code with explanations of changes. Ensure the refactored code maintains the same functionality while improving structure and readability.",
+        "profile": "coding"
+      },
+      "description": "Execute the refactoring"
+    },
+    {
+      "name": "Validate Refactoring",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Validate that the refactored code maintains the same functionality as the original. Identify any potential issues introduced by the refactoring and suggest solutions. Consider performance implications and code clarity improvements.",
+        "profile": "coding"
+      },
+      "description": "Ensure the refactoring is correct and beneficial"
+    },
+    {
+      "name": "Generate Documentation",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Create documentation for the refactored code, including explanations of the changes made, benefits achieved, and any usage differences. Update any relevant API documentation or comments.",
+        "profile": "coding"
+      },
+      "description": "Document the refactoring results"
+    }
+  ],
+  
+  "configuration": {
+    "rag": {
+      "chunk_size": 512,
+      "chunk_overlap": 50,
+      "embedding_model": "nomic-embed-text"
+    },
+    "cascade": {
+      "stages": {
+        "planning": {
+          "model": "llama3.1:8b",
+          "max_iterations": 2
+        },
+        "critique": {
+          "model": "qwen2.5:14b",
+          "max_iterations": 2
+        },
+        "execution": {
+          "model": "qwen2.5-coder:14b",
+          "max_iterations": 1
+        }
+      }
+    }
+  },
+  
+  "variables": {
+    "target_component": "Component to be refactored"
+  },
+  
+  "expected_outcomes": [
+    "Prioritized list of refactoring opportunities",
+    "Detailed analysis of target code sections",
+    "Comprehensive refactoring plan with steps",
+    "Cleanly refactored code with explanations",
+    "Validation that functionality is preserved",
+    "Updated documentation for refactored code"
+  ],
+  
+  "estimated_duration": "20-40 minutes",
+  "resource_requirements": {
+    "memory_gb": 8,
+    "models": ["llama3.1:8b", "qwen2.5:14b", "qwen2.5-coder:14b"]
+  }
+}

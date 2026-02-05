@@ -48,7 +48,8 @@
         "recommended_memory_gb": 5.0,
         "thermal_sensitivity": 0.4,
         "model_source": "ollama",
-        "requires_api_key": false
+        "requires_api_key": false,
+        "tags": ["coding", "reasoning", "generation", "multilingual"]
       },
       "temperature_defaults": {
         "planner": 0.2,
@@ -72,7 +73,8 @@
         "recommended_memory_gb": 10.0,
         "thermal_sensitivity": 0.6,
         "model_source": "ollama",
-        "requires_api_key": false
+        "requires_api_key": false,
+        "tags": ["coding", "reasoning", "generation", "multilingual", "function-calling"]
       },
       "temperature_defaults": {
         "planner": 0.25,
@@ -96,7 +98,8 @@
         "recommended_memory_gb": 5.5,
         "thermal_sensitivity": 0.5,
         "model_source": "ollama",
-        "requires_api_key": false
+        "requires_api_key": false,
+        "tags": ["coding", "reasoning", "generation", "multilingual", "function-calling"]
       },
       "temperature_defaults": {
         "planner": 0.2,
@@ -120,7 +123,8 @@
         "recommended_memory_gb": 6.0,
         "thermal_sensitivity": 0.5,
         "model_source": "ollama",
-        "requires_api_key": false
+        "requires_api_key": false,
+        "tags": ["coding", "reasoning", "generation", "multilingual", "function-calling", "long-context"]
       },
       "temperature_defaults": {
         "planner": 0.15,
@@ -149,7 +153,8 @@
             "recommended_memory_gb": 2.0,
             "thermal_sensitivity": 0.3,
             "model_source": "openai",
-            "requires_api_key": true
+            "requires_api_key": true,
+            "tags": ["coding", "reasoning", "generation", "multilingual", "function-calling", "vision", "cloud"]
           }
         },
         "gpt-4o": {
@@ -168,7 +173,8 @@
             "recommended_memory_gb": 4.0,
             "thermal_sensitivity": 0.4,
             "model_source": "openai",
-            "requires_api_key": true
+            "requires_api_key": true,
+            "tags": ["coding", "reasoning", "generation", "multilingual", "function-calling", "vision", "cloud", "premium"]
           }
         }
       }
@@ -192,7 +198,8 @@
             "recommended_memory_gb": 3.0,
             "thermal_sensitivity": 0.3,
             "model_source": "anthropic",
-            "requires_api_key": true
+            "requires_api_key": true,
+            "tags": ["coding", "reasoning", "generation", "multilingual", "function-calling", "vision", "cloud", "long-context"]
           }
         }
       }

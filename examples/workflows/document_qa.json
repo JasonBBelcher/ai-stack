@@ -1,0 +1,88 @@
+{
+  "workflow_name": "Document Question Answering",
+  "description": "Answer questions about documents using RAG to retrieve relevant information",
+  "version": "1.0",
+  "profile": "research",
+  "rag_profile": "research",
+  
+  "steps": [
+    {
+      "name": "Index Documents",
+      "type": "rag_index",
+      "parameters": {
+        "path": "./documents",
+        "profile": "research"
+      },
+      "description": "Index the document collection for querying"
+    },
+    {
+      "name": "Process Questions",
+      "type": "rag_query_batch",
+      "parameters": {
+        "queries": [
+          "What are the main findings of the research?",
+          "What methodology was used?",
+          "What are the limitations of the study?",
+          "What future work is suggested?"
+        ],
+        "profile": "research"
+      },
+      "description": "Answer key questions about the documents"
+    },
+    {
+      "name": "Synthesize Answers",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Synthesize the answers to the questions into a coherent summary that captures the essential information from the documents. Organize by themes and highlight key points.",
+        "profile": "research"
+      },
+      "description": "Create a comprehensive summary from the answers"
+    },
+    {
+      "name": "Generate Report",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Create a professional report presenting the document analysis, including an executive summary, key findings, methodology overview, and conclusions. Format as markdown with clear headings.",
+        "profile": "research"
+      },
+      "description": "Produce a final formatted report"
+    }
+  ],
+  
+  "configuration": {
+    "rag": {
+      "chunk_size": 1024,
+      "chunk_overlap": 200,
+      "embedding_model": "nomic-embed-text"
+    },
+    "cascade": {
+      "stages": {
+        "planning": {
+          "model": "llama3.1:8b",
+          "max_iterations": 3
+        },
+        "critique": {
+          "model": "qwen2.5:14b",
+          "max_iterations": 3
+        },
+        "execution": {
+          "model": "gpt-4o",
+          "max_iterations": 2
+        }
+      }
+    }
+  },
+  
+  "expected_outcomes": [
+    "Accurate answers to key questions",
+    "Comprehensive summary of document content",
+    "Professional report with organized findings",
+    "Identification of key themes and insights"
+  ],
+  
+  "estimated_duration": "10-20 minutes",
+  "resource_requirements": {
+    "memory_gb": 6,
+    "models": ["llama3.1:8b", "qwen2.5:14b", "gpt-4o"]
+  }
+}

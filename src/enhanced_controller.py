@@ -14,6 +14,16 @@ from src.memory_manager import MemoryManager
 from src.rag import ContextRetriever
 from src.prompt_engineer import IntentRouter, IntentType
 
+# Cascade components
+from src.cascade.ambiguity_detector import AmbiguityDetector
+from src.cascade.clarification_engine import ClarificationEngine
+from src.cascade.constraint_extractor import ConstraintExtractor
+from src.cascade.feasibility_validator import FeasibilityValidator
+from src.cascade.path_generator import PathGenerator
+from src.cascade.execution_planner import ExecutionPlanner
+from src.cascade.progress_monitor import ProgressMonitor
+from src.cascade.prompt_adjuster import PromptAdjuster
+
 
 class WorkflowResult:
     """Result of a workflow execution"""
@@ -45,6 +55,21 @@ class SimplifiedAIStackController:
         # Initialize RAG if project path is provided
         if self.project_path:
             self._initialize_rag()
+        
+        # Initialize cascade components
+        self.ambiguity_detector = AmbiguityDetector()
+        self.clarification_engine = ClarificationEngine(verbosity="normal")
+        self.constraint_extractor = ConstraintExtractor()
+        self.feasibility_validator = FeasibilityValidator()
+        self.path_generator = PathGenerator()
+        self.execution_planner = ExecutionPlanner()
+        self.progress_monitor = ProgressMonitor()
+        self.prompt_adjuster = PromptAdjuster()
+        
+        # Cascade state
+        self.cascade_enabled = True
+        self.current_execution_plan = None
+        self.current_monitoring_session = None
         
         # Take initial memory snapshot
         self.initial_memory = self.memory_manager.take_memory_snapshot()
@@ -203,11 +228,18 @@ class SimplifiedAIStackController:
                 # Use RAG-aware template
                 prompt = prompt_config.user_template.format(
                     user_input=user_input,
-                    rag_context=rag_context
+                    rag_context=rag_context,
+                    plan="",
+                    additional_context=""
                 )
             else:
                 # Use standard template
-                prompt = prompt_config.user_template.format(user_input=user_input)
+                prompt = prompt_config.user_template.format(
+                    user_input=user_input,
+                    rag_context="",
+                    plan="",
+                    additional_context=""
+                )
             
             # Get model configuration for executor role
             model_config = self.config.get_model_for_role("executor")
@@ -240,6 +272,284 @@ class SimplifiedAIStackController:
         result.memory_used = final_memory.used_gb - self.initial_memory.used_gb
         
         return result
+    
+    def process_request_with_cascade(self, user_input: str, context: str = "",
+                                    additional_context: str = "",
+                                    enable_cascade: bool = True) -> WorkflowResult:
+        """
+        Process a request with cascade ambiguity resolution and adaptive execution.
+        
+        Args:
+            user_input: User's request
+            context: Additional context
+            additional_context: More context
+            enable_cascade: Whether to use cascade processing
+            
+        Returns:
+            WorkflowResult with cascade metadata
+        """
+        result = WorkflowResult()
+        start_time = time.time()
+        
+        try:
+            # Step 1: Detect ambiguities
+            if enable_cascade:
+                print("\n[Cascade] Step 1: Detecting ambiguities...")
+                ambiguities = self.ambiguity_detector.detect(user_input)
+                
+                if ambiguities:
+                    print(f"[Cascade] Detected {len(ambiguities)} ambiguities")
+                    
+                    # Step 2: Clarify ambiguities (auto-skip for now, could be interactive)
+                    print("[Cascade] Step 2: Clarifying ambiguities...")
+                    session = self.clarification_engine.start_session(ambiguities)
+                    
+                    # Auto-skip all ambiguities for non-interactive mode
+                    for ambiguity in session.ambiguities:
+                        self.clarification_engine.process_choice(session, "skip")
+                    
+                    clarified_input = self.clarification_engine.apply_clarifications(user_input, session)
+                    print(f"[Cascade] Clarified request: {clarified_input}")
+                else:
+                    clarified_input = user_input
+                    print("[Cascade] No ambiguities detected")
+            else:
+                clarified_input = user_input
+            
+            # Step 3: Extract constraints
+            if enable_cascade:
+                print("\n[Cascade] Step 3: Extracting constraints...")
+                constraints = self.constraint_extractor.extract(user_input)
+                print(f"[Cascade] Extracted {len(constraints)} constraints")
+                for constraint in constraints:
+                    print(f"  - {constraint.type.value}: {constraint.value}")
+            else:
+                constraints = []
+            
+            # Step 4: Validate feasibility
+            if enable_cascade and constraints:
+                print("\n[Cascade] Step 4: Validating feasibility...")
+                feasibility = self.feasibility_validator.validate(clarified_input, constraints)
+                print(f"[Cascade] Feasibility: {feasibility.status.value} (confidence: {feasibility.confidence:.2f})")
+                
+                if feasibility.blockers:
+                    print("[Cascade] Blockers:")
+                    for blocker in feasibility.blockers:
+                        print(f"  - {blocker}")
+            else:
+                feasibility = None
+            
+            # Step 5: Generate execution paths (if constraints provided)
+            if enable_cascade and constraints:
+                print("\n[Cascade] Step 5: Generating execution paths...")
+                paths = self.path_generator.generate_paths(clarified_input, constraints, feasibility)
+                print(f"[Cascade] Generated {len(paths)} execution paths")
+                
+                # Select best path
+                best_path = self.path_generator.select_best_path(paths, constraints)
+                if best_path:
+                    print(f"[Cascade] Selected path: {best_path.path_type.value}")
+                    print(f"  Description: {best_path.description}")
+                    print(f"  Estimated time: {best_path.estimated_time:.1f} hours")
+            else:
+                best_path = None
+            
+            # Step 6: Create execution plan
+            if enable_cascade:
+                print("\n[Cascade] Step 6: Creating execution plan...")
+                self.current_execution_plan = self.execution_planner.create_plan(
+                    clarified_input, constraints, best_path
+                )
+                print(f"[Cascade] Created plan with {len(self.current_execution_plan.subtasks)} subtasks")
+                print(f"  Total estimated time: {self.current_execution_plan.total_estimated_time:.1f} hours")
+                print(f"  Workflow type: {self.current_execution_plan.workflow_type}")
+            else:
+                self.current_execution_plan = None
+            
+            # Step 7: Start progress monitoring
+            if enable_cascade and self.current_execution_plan:
+                print("\n[Cascade] Step 7: Starting progress monitoring...")
+                self.progress_monitor.start_monitoring(self.current_execution_plan)
+                self.current_monitoring_session = True
+                print("[Cascade] Monitoring started")
+            else:
+                self.current_monitoring_session = False
+            
+            # Step 8: Execute the request using standard processing
+            print("\n[Cascade] Step 8: Executing request...")
+            standard_result = self.process_request(clarified_input, context, additional_context)
+            
+            # Update progress
+            if self.current_monitoring_session and self.current_execution_plan:
+                # Mark first subtask as completed
+                if self.current_execution_plan.subtasks:
+                    from cascade.execution_planner import TaskStatus
+                    
+                    first_subtask = self.current_execution_plan.subtasks[0]
+                    self.execution_planner.update_subtask_status(
+                        self.current_execution_plan, first_subtask.id,
+                        TaskStatus.COMPLETED if standard_result.success else TaskStatus.FAILED
+                    )
+                    
+                    if standard_result.success:
+                        self.progress_monitor.update_progress(
+                            self.current_execution_plan, first_subtask.id,
+                            TaskStatus.COMPLETED,
+                            output=standard_result.output
+                        )
+                    else:
+                        self.progress_monitor.update_progress(
+                            self.current_execution_plan, first_subtask.id,
+                            TaskStatus.FAILED,
+                            error=standard_result.error
+                        )
+            
+            # Step 9: Get final progress report
+            if self.current_monitoring_session and self.current_execution_plan:
+                print("\n[Cascade] Step 9: Getting progress report...")
+                progress_report = self.progress_monitor.generate_report(self.current_execution_plan)
+                print(f"[Cascade] Progress: {progress_report.progress_percentage:.1f}%")
+                print(f"  Completed: {progress_report.completed_subtasks}/{progress_report.total_subtasks}")
+                print(f"  Obstacles: {len(progress_report.obstacles)}")
+                print(f"  Alerts: {len(progress_report.alerts)}")
+                
+                # Add cascade metadata to result
+                result.metadata = {
+                    **standard_result.metadata,
+                    "cascade_enabled": True,
+                    "ambiguities_detected": len(ambiguities) if enable_cascade else 0,
+                    "constraints_extracted": len(constraints) if enable_cascade else 0,
+                    "feasibility_status": feasibility.status.value if feasibility else None,
+                    "execution_path": best_path.path_type.value if best_path else None,
+                    "subtasks_total": len(self.current_execution_plan.subtasks) if self.current_execution_plan else 0,
+                    "progress_percentage": progress_report.progress_percentage,
+                    "obstacles_detected": len(progress_report.obstacles),
+                    "alerts_generated": len(progress_report.alerts)
+                }
+            else:
+                result.metadata = {
+                    **standard_result.metadata,
+                    "cascade_enabled": False
+                }
+            
+            # Copy standard result
+            result.success = standard_result.success
+            result.output = standard_result.output
+            result.error = standard_result.error
+            result.plan = standard_result.plan
+            result.critique = standard_result.critique
+            
+            print("\n[Cascade] Processing complete")
+            
+        except Exception as e:
+            result.error = f"Cascade processing failed: {e}"
+            import traceback
+            traceback.print_exc()
+        
+        result.execution_time = time.time() - start_time
+        
+        # Calculate memory used
+        final_memory = self.memory_manager.take_memory_snapshot()
+        result.memory_used = final_memory.used_gb - self.initial_memory.used_gb
+        
+        return result
+    
+    def adjust_prompt_for_obstacle(self, original_prompt: str, 
+                                   obstacle: Obstacle,
+                                   context: str = "") -> str:
+        """
+        Adjust a prompt when an obstacle is encountered.
+        
+        Args:
+            original_prompt: The original prompt that failed
+            obstacle: The obstacle that was encountered
+            context: Additional context
+            
+        Returns:
+            Adjusted prompt string
+        """
+        print(f"\n[Cascade] Adjusting prompt for obstacle: {obstacle.obstacle_type.value}")
+        
+        # Create a dummy subtask for the prompt_adjuster
+        from cascade.execution_planner import Subtask, TaskStatus, TaskPriority
+        
+        dummy_subtask = Subtask(
+            id="temp_subtask",
+            description="Temporary subtask for prompt adjustment",
+            status=TaskStatus.IN_PROGRESS,
+            priority=TaskPriority.MEDIUM,
+            dependencies=[],
+            estimated_time=1.0,
+            required_model="llama3.1:8b",
+            prompt=original_prompt,
+            output_format="text",
+            context={"original_context": context}
+        )
+        
+        # Analyze obstacle and generate adjustments
+        adjustments = self.prompt_adjuster.analyze_obstacle(
+            obstacle, dummy_subtask, {"context": context}
+        )
+        
+        print(f"[Cascade] Generated {len(adjustments)} adjustments")
+        
+        # Select best adjustment
+        best_adjustment = self.prompt_adjuster.select_best_adjustment(
+            adjustments, obstacle
+        )
+        
+        if best_adjustment:
+            print(f"[Cascade] Selected adjustment: {best_adjustment.type.value}")
+            print(f"  Reason: {best_adjustment.reason}")
+            
+            # Apply adjustment
+            adjusted_prompt = self.prompt_adjuster._apply_adjustment(
+                original_prompt, best_adjustment
+            )
+            
+            print(f"[Cascade] Adjusted prompt: {adjusted_prompt[:100]}...")
+            return adjusted_prompt
+        else:
+            print("[Cascade] No suitable adjustment found, using original prompt")
+            return original_prompt
+    
+    def get_cascade_status(self) -> dict:
+        """
+        Get current cascade system status.
+        
+        Returns:
+            Dictionary with cascade status information
+        """
+        status = {
+            "cascade_enabled": self.cascade_enabled,
+            "execution_plan_active": self.current_execution_plan is not None,
+            "monitoring_active": self.current_monitoring_session,
+            "components": {
+                "ambiguity_detector": self.ambiguity_detector is not None,
+                "clarification_engine": self.clarification_engine is not None,
+                "constraint_extractor": self.constraint_extractor is not None,
+                "feasibility_validator": self.feasibility_validator is not None,
+                "path_generator": self.path_generator is not None,
+                "execution_planner": self.execution_planner is not None,
+                "progress_monitor": self.progress_monitor is not None,
+                "prompt_adjuster": self.prompt_adjuster is not None
+            }
+        }
+        
+        if self.current_execution_plan:
+            from cascade.execution_planner import TaskStatus
+            
+            status["execution_plan"] = {
+                "total_subtasks": len(self.current_execution_plan.subtasks),
+                "completed_subtasks": sum(
+                    1 for s in self.current_execution_plan.subtasks 
+                    if s.status == TaskStatus.COMPLETED
+                ),
+                "workflow_type": self.current_execution_plan.workflow_type,
+                "total_estimated_time": self.current_execution_plan.total_estimated_time
+            }
+        
+        return status
     
     def _get_prompt_config_for_intent(self, intent: IntentType) -> PromptConfig:
         """Get the appropriate prompt configuration based on intent."""

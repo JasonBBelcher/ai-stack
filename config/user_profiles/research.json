@@ -39,5 +39,52 @@
   "cloud_settings": {
     "enable_openai": true,
     "enable_anthropic": true
+  },
+  "cascade_settings": {
+    "enabled": true,
+    "stages": {
+      "planning": {
+        "model": "llama3.1:8b",
+        "max_iterations": 3,
+        "timeout_seconds": 45,
+        "temperature": 0.4,
+        "max_tokens": 1536
+      },
+      "critique": {
+        "model": "qwen2.5:14b",
+        "max_iterations": 3,
+        "timeout_seconds": 45,
+        "temperature": 0.3,
+        "max_tokens": 1024
+      },
+      "execution": {
+        "model": "gpt-4o",
+        "max_iterations": 2,
+        "timeout_seconds": 90,
+        "temperature": 0.5,
+        "max_tokens": 3072
+      }
+    },
+    "flow_control": {
+      "enable_parallel_stages": false,
+      "enable_early_termination": false,
+      "min_confidence_threshold": 0.85,
+      "max_total_iterations": 8
+    },
+    "quality_gates": {
+      "planning_quality_threshold": 0.8,
+      "critique_quality_threshold": 0.85,
+      "execution_quality_threshold": 0.9
+    },
+    "memory_management": {
+      "unload_between_stages": true,
+      "preload_all_models": false,
+      "cache_intermediate_results": true
+    },
+    "fallback_behavior": {
+      "on_stage_failure": "retry_with_cloud_fallback",
+      "max_retries_per_stage": 3,
+      "fallback_to_direct_execution": false
+    }
   }
 }

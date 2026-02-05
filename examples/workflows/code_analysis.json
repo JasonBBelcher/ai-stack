@@ -1,0 +1,92 @@
+{
+  "workflow_name": "Code Analysis",
+  "description": "Analyze a codebase to understand its structure, identify potential issues, and suggest improvements",
+  "version": "1.0",
+  "profile": "coding",
+  "rag_profile": "coding",
+  
+  "steps": [
+    {
+      "name": "Index Codebase",
+      "type": "rag_index",
+      "parameters": {
+        "path": "./src",
+        "profile": "coding"
+      },
+      "description": "Index the source code for analysis"
+    },
+    {
+      "name": "Architecture Overview",
+      "type": "rag_query",
+      "parameters": {
+        "query": "Provide an overview of the codebase architecture, including main components and their relationships",
+        "profile": "coding"
+      },
+      "description": "Get a high-level understanding of the codebase structure"
+    },
+    {
+      "name": "Identify Potential Issues",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Analyze the codebase to identify potential bugs, security vulnerabilities, and performance issues. Prioritize findings by severity.",
+        "profile": "coding"
+      },
+      "description": "Perform detailed analysis to find issues"
+    },
+    {
+      "name": "Suggest Improvements",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Based on the architecture and identified issues, suggest improvements to the codebase. Include refactoring opportunities, optimization suggestions, and best practice recommendations.",
+        "profile": "coding"
+      },
+      "description": "Generate improvement suggestions"
+    },
+    {
+      "name": "Generate Report",
+      "type": "cascade_request",
+      "parameters": {
+        "request": "Create a comprehensive report summarizing the codebase analysis, including architecture overview, identified issues, and improvement suggestions. Format as markdown with clear sections.",
+        "profile": "coding"
+      },
+      "description": "Compile findings into a final report"
+    }
+  ],
+  
+  "configuration": {
+    "rag": {
+      "chunk_size": 512,
+      "chunk_overlap": 50,
+      "embedding_model": "nomic-embed-text"
+    },
+    "cascade": {
+      "stages": {
+        "planning": {
+          "model": "llama3.1:8b",
+          "max_iterations": 2
+        },
+        "critique": {
+          "model": "qwen2.5:14b",
+          "max_iterations": 2
+        },
+        "execution": {
+          "model": "qwen2.5:14b",
+          "max_iterations": 1
+        }
+      }
+    }
+  },
+  
+  "expected_outcomes": [
+    "Comprehensive understanding of codebase architecture",
+    "List of identified bugs, vulnerabilities, and performance issues",
+    "Prioritized improvement suggestions",
+    "Detailed analysis report in markdown format"
+  ],
+  
+  "estimated_duration": "15-30 minutes",
+  "resource_requirements": {
+    "memory_gb": 8,
+    "models": ["llama3.1:8b", "qwen2.5:14b"]
+  }
+}
